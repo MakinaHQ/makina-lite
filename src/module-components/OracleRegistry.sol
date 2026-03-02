@@ -20,7 +20,7 @@ abstract contract OracleRegistry is IOracleRegistry {
     }
 
     /// @inheritdoc IOracleRegistry
-    function isFeedRouteRegistered(address token) external view override returns (bool) {
+    function isFeedRouteRegistered(address token) public view override returns (bool) {
         return _feedRoutes[token].feed1 != address(0);
     }
 
@@ -56,7 +56,7 @@ abstract contract OracleRegistry is IOracleRegistry {
     }
 
     /// @inheritdoc IOracleRegistry
-    function getPrice(address baseToken, address quoteToken) external view override returns (uint256) {
+    function getPrice(address baseToken, address quoteToken) public view override returns (uint256) {
         FeedRoute memory baseFR = _feedRoutes[baseToken];
         FeedRoute memory quoteFR = _feedRoutes[quoteToken];
 
