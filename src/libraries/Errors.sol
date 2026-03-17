@@ -2,14 +2,21 @@
 pragma solidity 0.8.34;
 
 library Errors {
+    error AccountingMandatory();
     error AlreadyGuardian();
     error AlreadyOperator();
     error AmountOutTooLow();
+    error InstructionsMismatch();
+    error InvalidAccounting();
     error InvalidBpsValue();
     error InvalidDecimals();
     error InvalidFeedRoute();
     error InvalidFeeRate();
+    error InvalidInstructionProof();
+    error InvalidInstructionType();
+    error InvalidPositionChangeDirection();
     error MaxValueLossExceeded();
+    error MismatchedLengths();
     error NegativeTokenPrice(address priceFeed);
     error NotGuardian();
     error NotOperator();

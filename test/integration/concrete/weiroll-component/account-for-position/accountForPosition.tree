@@ -1,0 +1,27 @@
+accountForPosition.t.sol
+├── when call is reentrant
+│  └── it should revert
+└── when call is not reentrant
+   ├── when the module is suspended
+   │  └── it should revert with Suspended
+   └── when the module is not suspended
+      ├── when the module is paused
+      │  └── it should revert with Paused
+      └── when the module is not paused
+         ├── when caller is not a registered operator
+         │  └── it should revert with UnauthorizedCaller
+         └── when caller is a registered operator
+            ├── when the instruction is not of the accounting type
+            │  └── it should revert with InvalidInstructionType
+            └── when the instruction is of the accounting type
+               ├── when the instruction proof is not valid against the merkle root set in the caliber
+               │  └── it should revert with InvalidInstructionProof
+               └── when the instruction proof is valid against the merkle root set in the caliber
+                  ├── given the instruction execution fails
+                  │  └── it should revert
+                  └── given the instruction execution succeeds
+                     ├── given the instruction does not output a valid state
+                     │  └── it should revert with InvalidAccounting
+                     └── given the instruction outputs a valid state
+                        └── it should return the new value and the value change since last accounting
+                                 

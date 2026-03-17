@@ -14,12 +14,14 @@ import {Errors} from "./libraries/Errors.sol";
 import {MakinaLiteContext} from "./utils/MakinaLiteContext.sol";
 import {MakinaLiteGovernable} from "./utils/MakinaLiteGovernable.sol";
 import {OracleRegistry, IOracleRegistry} from "./module-components/OracleRegistry.sol";
+import {WeirollComponent, IWeirollComponent} from "./module-components/WeirollComponent.sol";
 import {SwapComponent, ISwapComponent} from "./module-components/SwapComponent.sol";
 
 contract MakinaLiteModule is
     MakinaLiteContext,
     MakinaLiteGovernable,
     OracleRegistry,
+    WeirollComponent,
     SwapComponent,
     ReentrancyGuard,
     IMakinaLiteModule
@@ -33,10 +35,25 @@ contract MakinaLiteModule is
     /// @dev Full scale value for fee rates
     uint256 private constant MAX_FEE_RATE = 1e18;
 
-    constructor(address registry, address _safe, address _provider, uint256 _maxSwapLossBps, uint256 _swapFeeRate)
-        MakinaLiteContext(registry)
-        MakinaLiteGovernable(_safe, _provider)
-    {
+    constructor(
+        address _registry,
+        address _safe,
+        address _provider,
+        address _weirollVm,
+        bytes32 _allowedInstrRoot,
+        uint256 _maxPositionIncreaseLossBps,
+        uint256 _maxPositionDecreaseLossBps,
+        uint256 _maxSwapLossBps,
+        uint256 _swapFeeRate
+    ) MakinaLiteContext(_registry) MakinaLiteGovernable(_safe, _provider) WeirollComponent(_weirollVm) {
+        _setAllowedInstrRoot(_allowedInstrRoot);
+
+        _checkBps(_maxPositionIncreaseLossBps);
+        _setMaxPositionIncreaseLossBps(_maxPositionIncreaseLossBps);
+
+        _checkBps(_maxPositionDecreaseLossBps);
+        _setMaxPositionDecreaseLossBps(_maxPositionDecreaseLossBps);
+
         _checkBps(_maxSwapLossBps);
         _setMaxSwapLossBps(_maxSwapLossBps);
 
@@ -63,6 +80,105 @@ contract MakinaLiteModule is
     /// @inheritdoc IOracleRegistry
     function setFeedStaleThreshold(address feed, uint256 newThreshold) external override onlySafe {
         _setFeedStaleThreshold(feed, newThreshold);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function accountForPosition(IWeirollComponent.Instruction calldata instruction)
+        external
+        override
+        nonReentrant
+        whenOperational
+        onlyOperator
+        returns (uint256)
+    {
+        return _accountForPosition(instruction, true, safe);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function accountForPositionBatch(IWeirollComponent.Instruction[] calldata instructions, uint256[] calldata)
+        external
+        override
+        nonReentrant
+        whenOperational
+        onlyOperator
+        returns (uint256[] memory)
+    {
+        uint256 len = instructions.length;
+        uint256[] memory values = new uint256[](len);
+        for (uint256 i; i < len; ++i) {
+            values[i] = _accountForPosition(instructions[i], true, safe);
+        }
+
+        return (values);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function managePosition(
+        IWeirollComponent.Instruction calldata mgmtInstruction,
+        IWeirollComponent.Instruction calldata acctInstruction
+    ) external override nonReentrant whenOperational onlyOperator returns (uint256, int256) {
+        return _managePosition(mgmtInstruction, acctInstruction, lockdownMode, safe);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function managePositionBatch(
+        IWeirollComponent.Instruction[] calldata mgmtInstructions,
+        IWeirollComponent.Instruction[] calldata acctInstructions
+    ) external override nonReentrant whenOperational onlyOperator returns (uint256[] memory, int256[] memory) {
+        uint256 len = mgmtInstructions.length;
+        if (len != acctInstructions.length) {
+            revert Errors.MismatchedLengths();
+        }
+
+        uint256[] memory values = new uint256[](len);
+        int256[] memory changes = new int256[](len);
+
+        for (uint256 i; i < len; ++i) {
+            (values[i], changes[i]) = _managePosition(mgmtInstructions[i], acctInstructions[i], lockdownMode, safe);
+        }
+
+        return (values, changes);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function harvest(IWeirollComponent.Instruction calldata instruction, ISwapComponent.SwapOrder[] calldata swapOrders)
+        external
+        override
+        nonReentrant
+        onlyOperator
+        whenOperational
+    {
+        _harvest(instruction, safe);
+
+        uint256 len = swapOrders.length;
+        for (uint256 i; i < len; ++i) {
+            _swapForSafe(swapOrders[i]);
+        }
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function setAllowedInstrRoot(bytes32 newAllowedInstrRoot) external override onlySafe {
+        _setAllowedInstrRoot(newAllowedInstrRoot);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function setAccountingCurrency(address newAccountingCurrency) external override onlySafe {
+        if (!isFeedRouteRegistered(newAccountingCurrency)) {
+            revert Errors.PriceFeedRouteNotRegistered(newAccountingCurrency);
+        }
+        _setAccountingCurrency(newAccountingCurrency);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function setMaxPositionIncreaseLossBps(uint256 newMaxPositionIncreaseLossBps) external override onlySafe {
+        _checkBps(newMaxPositionIncreaseLossBps);
+        _setMaxPositionIncreaseLossBps(newMaxPositionIncreaseLossBps);
+    }
+
+    /// @inheritdoc IWeirollComponent
+    function setMaxPositionDecreaseLossBps(uint256 newMaxPositionDecreaseLossBps) external override onlySafe {
+        _checkBps(newMaxPositionDecreaseLossBps);
+        _setMaxPositionDecreaseLossBps(newMaxPositionDecreaseLossBps);
     }
 
     /// @inheritdoc ISwapComponent
@@ -105,10 +221,20 @@ contract MakinaLiteModule is
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view
-        override
+        override(WeirollComponent, SwapComponent)
         returns (uint256)
     {
-        uint256 price = getPrice(baseToken, quoteToken);
+        if (baseToken == quoteToken) {
+            return baseTokenAmount;
+        }
+
+        uint256 price;
+        if (quoteToken == address(0)) {
+            price = getReferencePrice(baseToken);
+        } else {
+            price = getPrice(baseToken, quoteToken);
+        }
+
         return baseTokenAmount.mulDiv(price, 10 ** DecimalsUtils._getDecimals(baseToken));
     }
 

@@ -1,7 +1,7 @@
 getReferencePrice.t.sol
-├── given base token data is not initialized
+├── given price data is not registered for the provided base token
 │  └── it should revert with PriceFeedRouteNotRegistered
-└── given base token data is initialized
+└── given price data is registered for the providedbase token
    ├── given one of the feed prices is negative
    │  └── it should revert with NegativeTokenPrice
    └── given all feed prices are non-negative
