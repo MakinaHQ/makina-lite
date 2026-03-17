@@ -3,11 +3,12 @@ pragma solidity 0.8.34;
 
 import "forge-std/Test.sol";
 
+import {Constants} from "test/utils/Constants.sol";
 import {MockSafe} from "test/mocks/MockSafe.sol";
 
 import {Base} from "./Base.sol";
 
-abstract contract Base_Test is Base, Test {
+abstract contract Base_Test is Base, Constants, Test {
     address internal deployer;
 
     address internal dao;

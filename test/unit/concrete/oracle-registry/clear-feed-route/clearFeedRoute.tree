@@ -1,0 +1,6 @@
+clearFeedRoute.t.sol
+├── given no route is registered for the given token
+│  └── it should revert with PriceFeedRouteNotRegistered
+└── given a route is registered for the given token
+   ├── it should emit a FeedRouteCleared event
+   └── it should clear the feed route for the provide token in oracle registry storage

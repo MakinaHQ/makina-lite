@@ -1,0 +1,9 @@
+setFeedRoute.t.sol
+├── when caller does not have the relevant role
+│  └── it should revert with AccessManagedUnauthorized
+└── when caller has the relevant role
+   ├── given first price feed is null
+   │  └── it should revert with InvalidFeedRoute
+   └── given first price feed is non null
+      ├── it should emit a FeedRouteRegistered event
+      └── it should associate the provided feed route to provided token in oracle registry storage
