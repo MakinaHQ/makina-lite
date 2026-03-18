@@ -20,6 +20,8 @@ contract MockERC20 is ERC20 {
 
     uint8 private _decimals;
 
+    bool returnsFalseOnTransfer;
+
     constructor(string memory name_, string memory symbol_, uint256 decimals_) ERC20(name_, symbol_) {
         _decimals = uint8(decimals_);
     }
@@ -40,6 +42,16 @@ contract MockERC20 is ERC20 {
         _burn(account, amount);
     }
 
+    function transfer(address to, uint256 value) public override returns (bool) {
+        address owner = _msgSender();
+        _transfer(owner, to, value);
+        return !returnsFalseOnTransfer;
+    }
+
+    function setReturnsFalseOnTransfer(bool value) public {
+        returnsFalseOnTransfer = value;
+    }
+
     /// @notice Function to schedule a reentrancy call to the target contract.
     function scheduleReenter(Type when, address target, bytes calldata data) external {
         _reenterType = when;
@@ -47,20 +59,15 @@ contract MockERC20 is ERC20 {
         _reenterData = data;
     }
 
-    /// @notice Function to call the target contract.
-    function functionCall(address target, bytes memory data) public returns (bytes memory) {
-        return Address.functionCall(target, data);
-    }
-
     function _update(address from, address to, uint256 amount) internal override {
         if (_reenterType == Type.Before) {
             _reenterType = Type.No;
-            functionCall(_reenterTarget, _reenterData);
+            Address.functionCall(_reenterTarget, _reenterData);
         }
         super._update(from, to, amount);
         if (_reenterType == Type.After) {
             _reenterType = Type.No;
-            functionCall(_reenterTarget, _reenterData);
+            Address.functionCall(_reenterTarget, _reenterData);
         }
     }
 }

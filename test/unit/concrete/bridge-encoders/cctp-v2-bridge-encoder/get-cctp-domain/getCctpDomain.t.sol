@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.34;
+
+import {Errors} from "src/libraries/Errors.sol";
+
+import {CctpV2BridgeEncoder_Unit_Concrete_Test} from "../CctpV2BridgeEncoder.t.sol";
+
+contract GetCctpDomain_Unit_Concrete_Test is CctpV2BridgeEncoder_Unit_Concrete_Test {
+    function test_RevertWhen_EvmChainIdNotRegistered() public {
+        vm.expectRevert(abi.encodeWithSelector(Errors.CctpDomainNotRegistered.selector, 0));
+        cctpV2BridgeEncoder.getCctpDomain(0);
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.CctpDomainNotRegistered.selector, 2));
+        cctpV2BridgeEncoder.getCctpDomain(2);
+    }
+
+    function test_GetCctpDomain() public {
+        assertEq(cctpV2BridgeEncoder.getCctpDomain(1), 0);
+
+        vm.prank(dao);
+        cctpV2BridgeEncoder.setCctpDomain(2, 3);
+
+        assertEq(cctpV2BridgeEncoder.getCctpDomain(2), 3);
+    }
+}

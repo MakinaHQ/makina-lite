@@ -1,0 +1,12 @@
+removeOft.t.sol
+├── when caller does not have the relevant role
+│  └── it should revert with AccessManagedUnauthorized
+└── when caller has the relevant role
+   ├── when the provided oft address is equal to zero
+   │  └── it should revert with ZeroTokenAddress
+   └── when the provided oft address is not equal to zero
+      ├── when the provided oft address is not registered
+      │  └── it should revert with OftNotRegistered
+      └── when the provided oft address is registered
+         ├── it should mark the provided oft as non registered
+         └── it should emit a OftRemoved event
