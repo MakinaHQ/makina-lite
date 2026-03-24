@@ -18,6 +18,8 @@ abstract contract Base_Test is Base, Constants, Test {
     address internal deployer;
 
     address internal dao;
+    address internal operator;
+    address internal guardian;
 
     MockSafe internal safe;
 
@@ -28,6 +30,8 @@ abstract contract Base_Test is Base, Constants, Test {
     function setUp() public virtual {
         deployer = address(this);
         dao = makeAddr("MakinaDAO");
+        operator = makeAddr("operator");
+        guardian = makeAddr("guardian");
 
         _deployAccessManager(deployer, deployer);
 
@@ -35,6 +39,8 @@ abstract contract Base_Test is Base, Constants, Test {
 
         MakinaLiteInfra memory makinaLiteInfra = deployMakinaLiteInfra(address(accessManager));
         registry = makinaLiteInfra.registry;
+
+        setupMakinaLiteRegistry(makinaLiteInfra, dao);
 
         setupAccessManagerRoles();
     }

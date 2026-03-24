@@ -46,6 +46,13 @@ abstract contract MakinaLiteGovernable is IMakinaLiteGovernable {
         _;
     }
 
+    modifier onlyOperator() {
+        if (!isOperator[msg.sender]) {
+            revert Errors.UnauthorizedCaller();
+        }
+        _;
+    }
+
     modifier onlyGuardian() {
         if (!isGuardian[msg.sender]) {
             revert Errors.UnauthorizedCaller();
