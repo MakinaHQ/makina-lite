@@ -9,12 +9,13 @@ import {
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {Constants} from "../utils/Constants.sol";
+import {IRCodeReader} from "../utils/IRCodeReader.sol";
 import {MakinaLiteRegistry} from "../../src/registry/MakinaLiteRegistry.sol";
 import {MockSafe} from "../mocks/MockSafe.sol";
 
 import {Base} from "./Base.sol";
 
-abstract contract Base_Test is Base, Constants, Test {
+abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
     address internal deployer;
 
     address internal dao;
@@ -69,5 +70,9 @@ abstract contract Base_Test is Base, Constants, Test {
                 )
             )
         );
+    }
+
+    function _deployWeirollVM() internal virtual returns (address weirollVM) {
+        return _deployCode(getWeirollVMCode());
     }
 }

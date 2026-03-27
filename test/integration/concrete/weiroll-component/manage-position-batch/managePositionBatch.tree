@@ -1,0 +1,11 @@
+managePositionBatch.t.sol
+├── when call is reentrant
+│  └── it should revert
+└── when call is not reentrant
+   ├── when caller is not a registered operator
+   │  └── it should revert with UnauthorizedCaller
+   └── when caller is a registered operator
+      ├── when management and accounting instruction list lengths are mismatched
+      │  └── it should revert with MismatchedLengths
+      └── when management and accounting instruction list lengths are matched
+         └── it should execute the provided pairs of management and optional accounting instructions sequentially, and return the resulting position values and value changes when applicable.

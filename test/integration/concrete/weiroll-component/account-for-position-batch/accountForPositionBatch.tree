@@ -1,0 +1,8 @@
+accountForPositionBatch.t.sol
+├── when call is reentrant
+│  └── it should revert
+└── when call is not reentrant
+   ├── when caller is not a registered operator
+   │  └── it should revert with UnauthorizedCaller
+   └── when caller is a registered operator
+      └── it should run provided accounting instructions sequentially and return the resulting position values.

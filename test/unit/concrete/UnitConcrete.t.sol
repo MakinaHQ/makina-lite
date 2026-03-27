@@ -12,7 +12,15 @@ abstract contract Unit_Concrete_Test is Base_Test {
         Base_Test.setUp();
 
         makinaLiteModule = new MakinaLiteModule(
-            address(registry), address(safe), dao, DEFAULT_MAX_SWAP_LOSS_BPS, DEFAULT_SWAP_FEE_RATE
+            address(registry),
+            address(safe),
+            dao,
+            address(0),
+            bytes32(0),
+            DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
+            DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+            DEFAULT_MAX_SWAP_LOSS_BPS,
+            DEFAULT_SWAP_FEE_RATE
         );
     }
 }

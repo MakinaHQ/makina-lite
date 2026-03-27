@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
+import {MockBorrowModule} from "test/mocks/MockBorrowModule.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
+import {MockERC4626} from "test/mocks/MockERC4626.sol";
 import {MockDex} from "test/mocks/MockDex.sol";
 import {MockPriceFeed} from "test/mocks/MockPriceFeed.sol";
+import {MockSupplyModule} from "test/mocks/MockSupplyModule.sol";
+import {VMInstructionHelper} from "test/utils/VMInstructionHelper.sol";
 
 import {Base_Test} from "../../base/Base.t.sol";
 
-abstract contract Integration_Concrete_Test is Base_Test {
+abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
     /// @dev A denotes tokenA, B denotes tokenB
     /// and E is the reference currency of the oracle registry.
     uint256 internal constant PRICE_A_E = 150;
@@ -22,6 +28,12 @@ abstract contract Integration_Concrete_Test is Base_Test {
     MockPriceFeed internal bPriceFeed1;
 
     MockDex internal dex;
+
+    MockERC4626 internal vault;
+    MockSupplyModule internal supplyModule;
+    MockBorrowModule internal borrowModule;
+
+    address internal weirollVM;
 
     MakinaLiteModule internal makinaLiteModule;
 
@@ -37,8 +49,22 @@ abstract contract Integration_Concrete_Test is Base_Test {
         dex = new MockDex();
         dex.setQuote(address(tokenA), address(tokenB), 1, PRICE_B_A);
 
+        vault = new MockERC4626("vault", "VLT", IERC20(tokenB), 0);
+        supplyModule = new MockSupplyModule(IERC20(tokenB));
+        borrowModule = new MockBorrowModule(IERC20(tokenB));
+
+        weirollVM = _deployWeirollVM();
+
         makinaLiteModule = new MakinaLiteModule(
-            address(registry), address(safe), dao, DEFAULT_MAX_SWAP_LOSS_BPS, DEFAULT_SWAP_FEE_RATE
+            address(registry),
+            address(safe),
+            dao,
+            weirollVM,
+            bytes32(0),
+            DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
+            DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+            DEFAULT_MAX_SWAP_LOSS_BPS,
+            DEFAULT_SWAP_FEE_RATE
         );
 
         vm.startPrank(address(safe));
@@ -59,9 +85,14 @@ abstract contract Integration_Concrete_Test is Base_Test {
     }
 
     modifier whileInLockdownMode() {
-        vm.startPrank(address(safe));
+        vm.prank(address(safe));
         makinaLiteModule.setLockdownMode(true);
-        vm.stopPrank();
+        _;
+    }
+
+    modifier withAccountingCurrency(address currency) {
+        vm.prank(address(safe));
+        makinaLiteModule.setAccountingCurrency(currency);
         _;
     }
 }
