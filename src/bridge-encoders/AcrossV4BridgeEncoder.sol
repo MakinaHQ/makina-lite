@@ -24,7 +24,8 @@ contract AcrossV4BridgeEncoder is AccessManagedUpgradeable, IAcrossV4BridgeEncod
     }
 
     // keccak256(abi.encode(uint256(keccak256("makina.storage.AcrossV4BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AcrossV4BridgeEncoderStorageLocation = 0;
+    bytes32 private constant AcrossV4BridgeEncoderStorageLocation =
+        0x7ac48160dcadfe48aa9955deee253225b971e43ffbc0563788d75cfc0c119200;
 
     function _getAcrossV4BridgeEncoderStorage() private pure returns (AcrossV4BridgeEncoderStorage storage $) {
         assembly {

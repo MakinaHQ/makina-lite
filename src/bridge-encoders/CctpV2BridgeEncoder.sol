@@ -31,7 +31,8 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
     }
 
     // keccak256(abi.encode(uint256(keccak256("makina.storage.CctpV2BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant CctpV2BridgeEncoderStorageLocation = 0;
+    bytes32 private constant CctpV2BridgeEncoderStorageLocation =
+        0xf328330f3f10dab15d2017eb5a9b8f097a1f885a67bf8c1c3d0c92f22ff92700;
 
     function _getCctpV2BridgeEncoderStorage() private pure returns (CctpV2BridgeEncoderStorage storage $) {
         assembly {

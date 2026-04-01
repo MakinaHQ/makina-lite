@@ -27,7 +27,8 @@ contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2Bridg
     }
 
     // keccak256(abi.encode(uint256(keccak256("makina.storage.LayerZeroV2BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant LayerZeroV2BridgeEncoderStorageLocation = 0;
+    bytes32 private constant LayerZeroV2BridgeEncoderStorageLocation =
+        0xecd8981fd5d1fee10c72726d865a16a974a3b620f0b56ff7bc8172fd1d9bcb00;
 
     function _getLayerZeroV2BridgeEncoderStorage() private pure returns (LayerZeroV2BridgeEncoderStorage storage $) {
         assembly {
