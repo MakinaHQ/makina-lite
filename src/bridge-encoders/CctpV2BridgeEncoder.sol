@@ -46,6 +46,8 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
     }
 
     function initialize(address initialAuthority) external initializer {
+        emit CctpDomainRegistered(MAINNET_CHAIN_ID, MAINNET_CCTP_DOMAIN);
+
         __AccessManaged_init(initialAuthority);
     }
 
