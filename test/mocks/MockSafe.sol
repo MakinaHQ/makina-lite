@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
 import {ISafe} from "../../src/interfaces/ISafe.sol";
@@ -9,7 +9,13 @@ contract MockSafe is ISafe {
         address indexed to, uint256 value, bytes data, Operation operation, bool success, bytes returnData
     );
 
-    receive() external payable {}
+    bool public revertOnReceive;
+
+    receive() external payable {
+        if (revertOnReceive) {
+            revert();
+        }
+    }
 
     function execTransactionFromModule(address to, uint256 value, bytes memory data, Operation operation)
         external
@@ -25,6 +31,10 @@ contract MockSafe is ISafe {
         returns (bool success, bytes memory returnData)
     {
         (success, returnData) = _execute(to, value, data, operation);
+    }
+
+    function setRevertOnReceive(bool value) external {
+        revertOnReceive = value;
     }
 
     function _execute(address to, uint256 value, bytes memory data, Operation operation)

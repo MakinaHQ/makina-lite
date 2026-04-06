@@ -16,6 +16,7 @@
     "max-states-count": ["error", 50],
     "use-natspec": "off",
     "import-path-check": "off",
-    "gas-indexed-events": "off"
+    "gas-indexed-events": "off",
+    "function-max-lines": ["warn", 60]
   }
 }

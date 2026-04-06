@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import {BridgeComponent} from "./module-components/BridgeComponent.sol";
 import {DecimalsUtils} from "./libraries/DecimalsUtils.sol";
+import {IBridgeComponent} from "./interfaces/IBridgeComponent.sol";
 import {IMakinaLiteModule} from "./interfaces/IMakinaLiteModule.sol";
 import {IMakinaLiteRegistry} from "./interfaces/IMakinaLiteRegistry.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
@@ -23,6 +26,7 @@ contract MakinaLiteModule is
     OracleRegistry,
     WeirollComponent,
     SwapComponent,
+    BridgeComponent,
     ReentrancyGuard,
     IMakinaLiteModule
 {
@@ -60,6 +64,8 @@ contract MakinaLiteModule is
         _checkFeeRate(_swapFeeRate);
         _setSwapFeeRate(_swapFeeRate);
     }
+
+    receive() external payable {}
 
     /// @inheritdoc IOracleRegistry
     function setFeedRoute(
@@ -206,9 +212,53 @@ contract MakinaLiteModule is
         _setSwapperTargets(swapperId, approvalTarget, executionTarget);
     }
 
+    /// @inheritdoc IBridgeComponent
+    function sendOutBridgeTransfer(IBridgeComponent.BridgeOrder calldata order)
+        external
+        override
+        nonReentrant
+        whenOperational
+        onlyOperator
+    {
+        address encoder = IMakinaLiteRegistry(registry).getBridgeEncoder(order.bridgeId);
+
+        _pullERC20FromSafe(order.inputToken, order.inputAmount);
+
+        _sendOutBridgeTransfer(order, encoder, lockdownMode);
+    }
+
+    /// @inheritdoc IBridgeComponent
+    function setMaxBridgeLossBps(uint16 bridgeId, uint256 maxBridgeLossBps) external override onlySafe {
+        _setMaxBridgeLossBps(bridgeId, maxBridgeLossBps);
+    }
+
+    /// @inheritdoc IBridgeComponent
+    function addRecipient(uint256 foreignChainId, address recipient) external override onlySafe {
+        _addRecipient(foreignChainId, recipient);
+    }
+
+    /// @inheritdoc IBridgeComponent
+    function removeRecipient(uint256 foreignChainId, address recipient) external override onlySafe {
+        _removeRecipient(foreignChainId, recipient);
+    }
+
+    /// @inheritdoc IMakinaLiteModule
+    function sweepERC20(address token) external nonReentrant onlySafe {
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransfer(safe, bal);
+    }
+
+    /// @inheritdoc IMakinaLiteModule
+    function sweepNative() external nonReentrant onlySafe {
+        (bool success,) = safe.call{value: address(this).balance}("");
+        if (!success) {
+            revert Errors.SweepNativeFailed();
+        }
+    }
+
     /// @dev Internal logic to execute swap tokens on behalf of Safe using a given swapper.
     function _swapForSafe(ISwapComponent.SwapOrder calldata order) internal {
-        _transferFromSafe(order.inputToken, order.inputAmount);
+        _pullERC20FromSafe(order.inputToken, order.inputAmount);
 
         uint256 amountOut = _swap(order, lockdownMode);
 
@@ -217,7 +267,7 @@ contract MakinaLiteModule is
         IERC20(order.outputToken).safeTransfer(safe, amountOut - fee);
     }
 
-    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`,  using the registered price feed.
+    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price feed.
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view
@@ -238,16 +288,20 @@ contract MakinaLiteModule is
         return baseTokenAmount.mulDiv(price, 10 ** DecimalsUtils._getDecimals(baseToken));
     }
 
-    /// @dev Approves this contract via a Safe module call to spend `amount` of `token`,
-    ///      then pulls the tokens from the Safe.
-    ///      Intentionally optimistic: does not check the Safe call result.
-    ///      Safety relies on `transferFrom` reverting if approval/allowance is insufficient.
-    function _transferFromSafe(address token, uint256 amount) internal {
-        ISafe(safe)
-            .execTransactionFromModule(
-                token, 0, abi.encodeCall(IERC20.approve, (address(this), amount)), ISafe.Operation.Call
+    /// @dev Transfers `amount` of ERC20 `token` from the Safe to this module via a module call.
+    function _pullERC20FromSafe(address token, uint256 amount) internal {
+        if (token.code.length == 0) {
+            revert Errors.InvalidInputToken();
+        }
+
+        (bool success, bytes memory returnData) = ISafe(safe)
+            .execTransactionFromModuleReturnData(
+                token, 0, abi.encodeCall(IERC20.transfer, (address(this), amount)), ISafe.Operation.Call
             );
-        IERC20(token).safeTransferFrom(safe, address(this), amount);
+        returnData = Address.verifyCallResult(success, returnData);
+        if (returnData.length > 0 && !abi.decode(returnData, (bool))) {
+            revert Errors.TransferFromSafeFailed();
+        }
     }
 
     /// @dev Performs sanity check on a basis points value.

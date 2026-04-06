@@ -3,9 +3,13 @@ pragma solidity 0.8.34;
 
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
+import {AcrossV4BridgeEncoder} from "../../src/bridge-encoders/AcrossV4BridgeEncoder.sol";
+import {CctpV2BridgeEncoder} from "../../src/bridge-encoders/CctpV2BridgeEncoder.sol";
+import {IntegrationIds} from "../utils/IntegrationIds.sol";
+import {LayerZeroV2BridgeEncoder} from "../../src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
 import {MakinaLiteRegistry} from "../../src/registry/MakinaLiteRegistry.sol";
 
-abstract contract Base {
+abstract contract Base is IntegrationIds {
     struct MakinaLiteInfra {
         MakinaLiteRegistry registry;
     }
@@ -28,6 +32,55 @@ abstract contract Base {
                 abi.encodePacked(
                     type(TransparentUpgradeableProxy).creationCode,
                     abi.encode(implem, _proxyOwner, abi.encodeCall(MakinaLiteRegistry.initialize, (_accessManager)))
+                )
+            )
+        );
+    }
+
+    function _deployAcrossV4BridgeEncoder(address _proxyOwner, address _accessManager, address _acrossV4SpokePool)
+        internal
+        returns (AcrossV4BridgeEncoder acrossV4BridgeEncoder)
+    {
+        address implem =
+            _deployCode(abi.encodePacked(type(AcrossV4BridgeEncoder).creationCode, abi.encode(_acrossV4SpokePool)));
+        return AcrossV4BridgeEncoder(
+            _deployCode(
+                abi.encodePacked(
+                    type(TransparentUpgradeableProxy).creationCode,
+                    abi.encode(implem, _proxyOwner, abi.encodeCall(AcrossV4BridgeEncoder.initialize, (_accessManager)))
+                )
+            )
+        );
+    }
+
+    function _deployLayerZeroV2BridgeEncoder(address _proxyOwner, address _accessManager)
+        internal
+        returns (LayerZeroV2BridgeEncoder layerZeroV2BridgeEncoder)
+    {
+        address implem = _deployCode(type(LayerZeroV2BridgeEncoder).creationCode);
+        return LayerZeroV2BridgeEncoder(
+            _deployCode(
+                abi.encodePacked(
+                    type(TransparentUpgradeableProxy).creationCode,
+                    abi.encode(
+                        implem, _proxyOwner, abi.encodeCall(LayerZeroV2BridgeEncoder.initialize, (_accessManager))
+                    )
+                )
+            )
+        );
+    }
+
+    function _deployCctpV2BridgeEncoder(address _proxyOwner, address _accessManager, address cctpV2TokenMessenger)
+        internal
+        returns (CctpV2BridgeEncoder cctpV2BridgeEncoder)
+    {
+        address implem =
+            _deployCode(abi.encodePacked(type(CctpV2BridgeEncoder).creationCode, abi.encode(cctpV2TokenMessenger)));
+        return CctpV2BridgeEncoder(
+            _deployCode(
+                abi.encodePacked(
+                    type(TransparentUpgradeableProxy).creationCode,
+                    abi.encode(implem, _proxyOwner, abi.encodeCall(CctpV2BridgeEncoder.initialize, (_accessManager)))
                 )
             )
         );

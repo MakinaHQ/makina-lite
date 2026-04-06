@@ -9,4 +9,8 @@ abstract contract IRCodeReader {
     function getWeirollVMCode() internal view returns (bytes memory creationBytecode) {
         return vm.getCode("out-ir-based/WeirollVM.sol/WeirollVM.json");
     }
+
+    function getMockAcrossSpokePoolCode() internal view returns (bytes memory creationBytecode) {
+        return vm.getCode("out-ir-based/MockAcrossSpokePool.sol/MockAcrossSpokePool.json");
+    }
 }

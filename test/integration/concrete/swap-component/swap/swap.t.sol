@@ -3,10 +3,10 @@ pragma solidity 0.8.34;
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
+import {Errors} from "src/libraries/Errors.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
 import {MockDex} from "test/mocks/MockDex.sol";
 import {ISwapComponent} from "src/interfaces/ISwapComponent.sol";
-import {Errors} from "src/libraries/Errors.sol";
 
 import {Integration_Concrete_Test} from "../../IntegrationConcrete.t.sol";
 
@@ -39,29 +39,28 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         makinaLiteModule.swap(order);
     }
 
-    function test_RevertGiven_ModuleSuspended() public {
-        vm.prank(address(dao));
-        makinaLiteModule.suspend();
-
+    function test_RevertWhen_NotOperational() public {
         ISwapComponent.SwapOrder memory order;
 
-        vm.expectRevert(Errors.Suspended.selector);
-        makinaLiteModule.swap(order);
-
-        vm.prank(address(safe));
+        // module paused
+        vm.prank(guardian);
         makinaLiteModule.pause();
-
-        vm.expectRevert(Errors.Suspended.selector);
-        makinaLiteModule.swap(order);
-    }
-
-    function test_RevertGiven_ModulePaused() public {
-        vm.prank(address(safe));
-        makinaLiteModule.pause();
-
-        ISwapComponent.SwapOrder memory order;
 
         vm.expectRevert(Errors.Paused.selector);
+        makinaLiteModule.swap(order);
+
+        // module suspended + paused
+        vm.prank(dao);
+        makinaLiteModule.suspend();
+
+        vm.expectRevert(Errors.Suspended.selector);
+        makinaLiteModule.swap(order);
+
+        // module suspended
+        vm.prank(guardian);
+        makinaLiteModule.unpause();
+
+        vm.expectRevert(Errors.Suspended.selector);
         makinaLiteModule.swap(order);
     }
 
@@ -69,6 +68,25 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         ISwapComponent.SwapOrder memory order;
 
         vm.expectRevert(Errors.UnauthorizedCaller.selector);
+        makinaLiteModule.swap(order);
+    }
+
+    function test_RevertGiven_InvalidInputToken() public {
+        ISwapComponent.SwapOrder memory order;
+
+        vm.expectRevert(Errors.InvalidInputToken.selector);
+        vm.prank(operator);
+        makinaLiteModule.swap(order);
+    }
+
+    function test_RevertGiven_TransferFromSafeFailed() public {
+        tokenA.setReturnsFalseOnTransfer(true);
+
+        ISwapComponent.SwapOrder memory order;
+        order.inputToken = address(tokenA);
+
+        vm.expectRevert(Errors.TransferFromSafeFailed.selector);
+        vm.prank(operator);
         makinaLiteModule.swap(order);
     }
 

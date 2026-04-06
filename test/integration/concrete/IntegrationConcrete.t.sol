@@ -53,7 +53,7 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
         supplyModule = new MockSupplyModule(IERC20(tokenB));
         borrowModule = new MockBorrowModule(IERC20(tokenB));
 
-        weirollVM = _deployWeirollVM();
+        weirollVM = _deployCode(getWeirollVMCode());
 
         makinaLiteModule = new MakinaLiteModule(
             address(registry),

@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.34;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import {IOFT} from "../../src/interfaces/IOFT.sol";
+import {MockERC20} from "./MockERC20.sol";
+
+/// @dev MockOFT contract for testing use only
+contract MockOFT is MockERC20, IOFT {
+    using SafeERC20 for IERC20;
+
+    event Send(
+        uint32 dstEid,
+        bytes32 to,
+        uint256 amountLD,
+        uint256 minAmountLD,
+        uint128 lzReceiveGas,
+        uint256 nativeFee,
+        address refundAddress
+    );
+
+    bool public faultyModeSend;
+    bool public faultyModeReceive;
+
+    uint128 public verifyGas;
+    uint256 public gasPrice;
+
+    constructor(string memory name_, string memory symbol_) MockERC20(name_, symbol_, 18) {}
+
+    function token() external view returns (address) {
+        return address(this);
+    }
+
+    function approvalRequired() external pure returns (bool) {
+        return false;
+    }
+
+    function quoteOFT(SendParam calldata _sendParam)
+        external
+        view
+        returns (OFTLimit memory oftLimit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt)
+    {
+        uint256 amountSentLD = faultyModeSend ? _sendParam.amountLD / 2 : _sendParam.amountLD;
+        uint256 amountReceivedLD = faultyModeReceive ? _sendParam.amountLD / 2 : _sendParam.amountLD;
+
+        oftReceipt.amountSentLD = amountSentLD;
+        oftReceipt.amountReceivedLD = amountReceivedLD;
+
+        return (oftLimit, oftFeeDetails, oftReceipt);
+    }
+
+    function quoteSend(SendParam calldata _sendParam, bool) external view returns (MessagingFee memory messagingFee) {
+        uint128 lzReceiveGas;
+        if (_sendParam.extraOptions.length != 0) {
+            lzReceiveGas = uint128(bytes16(_sendParam.extraOptions[6:22]));
+        }
+
+        return MessagingFee((verifyGas + lzReceiveGas) * gasPrice, 0);
+    }
+
+    function send(SendParam calldata _sendParam, MessagingFee calldata _fee, address _refundAddress)
+        external
+        payable
+        returns (MessagingReceipt memory messagingReceipt, OFTReceipt memory oftReceipt)
+    {
+        uint256 amountSentLD = faultyModeSend ? _sendParam.amountLD / 2 : _sendParam.amountLD;
+        uint256 amountReceivedLD = faultyModeReceive ? _sendParam.amountLD / 2 : _sendParam.amountLD;
+
+        if (amountReceivedLD < _sendParam.minAmountLD) {
+            revert();
+        }
+
+        _burn(msg.sender, amountSentLD);
+
+        uint128 lzReceiveGas;
+        if (_sendParam.extraOptions.length != 0) {
+            lzReceiveGas = uint128(bytes16(_sendParam.extraOptions[6:22]));
+        }
+
+        emit Send(
+            _sendParam.dstEid,
+            _sendParam.to,
+            _sendParam.amountLD,
+            _sendParam.minAmountLD,
+            lzReceiveGas,
+            _fee.nativeFee,
+            _refundAddress
+        );
+
+        return (messagingReceipt, oftReceipt);
+    }
+
+    function setFaultyModeSend(bool _faultyMode) public {
+        faultyModeSend = _faultyMode;
+    }
+
+    function setFaultyModeReceive(bool _faultyMode) public {
+        faultyModeReceive = _faultyMode;
+    }
+
+    function setVerifyGas(uint128 _verifyGas) public {
+        verifyGas = _verifyGas;
+    }
+
+    function setGasPrice(uint256 _gasPrice) public {
+        gasPrice = _gasPrice;
+    }
+}

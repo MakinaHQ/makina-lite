@@ -71,8 +71,4 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
             )
         );
     }
-
-    function _deployWeirollVM() internal virtual returns (address weirollVM) {
-        return _deployCode(getWeirollVMCode());
-    }
 }

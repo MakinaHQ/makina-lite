@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.34;
+
+import {LayerZeroV2BridgeEncoder} from "src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
+import {MockOFT} from "test/mocks/MockOFT.sol";
+import {MockOFTAdapter} from "test/mocks/MockOFTAdapter.sol";
+
+import {BridgeEncoder_Integration_Concrete_Test} from "../BridgeEncoder.t.sol";
+
+abstract contract LayerZeroV2BridgeEncoder_Integration_Concrete_Test is BridgeEncoder_Integration_Concrete_Test {
+    MockOFTAdapter internal oftAdapter;
+    MockOFT internal oft;
+
+    LayerZeroV2BridgeEncoder internal layerZeroV2BridgeEncoder;
+
+    function setUp() public virtual override {
+        BridgeEncoder_Integration_Concrete_Test.setUp();
+
+        oftAdapter = new MockOFTAdapter(address(baseToken));
+        oft = new MockOFT("Mock OFT", "MOFT");
+
+        layerZeroV2BridgeEncoder = _deployLayerZeroV2BridgeEncoder(address(accessManager), address(accessManager));
+
+        vm.prank(dao);
+        layerZeroV2BridgeEncoder.setLzEndpointId(L2_CHAIN_ID, LAYER_ZERO_V2_L2_CHAIN_ID);
+
+        oftAdapter.setVerifyGas(DEFAULT_LAYER_ZERO_V2_LZ_VERIFY_GAS);
+        oftAdapter.setGasPrice(DEFAULT_LAYER_ZERO_V2_GAS_PRICE);
+        oft.setVerifyGas(DEFAULT_LAYER_ZERO_V2_LZ_VERIFY_GAS);
+        oft.setGasPrice(DEFAULT_LAYER_ZERO_V2_GAS_PRICE);
+    }
+}
