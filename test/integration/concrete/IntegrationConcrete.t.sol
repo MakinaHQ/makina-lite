@@ -3,6 +3,7 @@ pragma solidity 0.8.34;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
 import {MockBorrowModule} from "test/mocks/MockBorrowModule.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
@@ -33,8 +34,6 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
     MockSupplyModule internal supplyModule;
     MockBorrowModule internal borrowModule;
 
-    address internal weirollVM;
-
     MakinaLiteModule internal makinaLiteModule;
 
     function setUp() public virtual override {
@@ -53,18 +52,20 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
         supplyModule = new MockSupplyModule(IERC20(tokenB));
         borrowModule = new MockBorrowModule(IERC20(tokenB));
 
-        weirollVM = _deployCode(getWeirollVMCode());
-
-        makinaLiteModule = new MakinaLiteModule(
-            address(registry),
-            address(safe),
-            dao,
-            weirollVM,
-            bytes32(0),
-            DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
-            DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
-            DEFAULT_MAX_SWAP_LOSS_BPS,
-            DEFAULT_SWAP_FEE_RATE
+        vm.prank(dao);
+        makinaLiteModule = MakinaLiteModule(
+            payable(moduleFactory.createModule(
+                    IMakinaLiteModule.MakinaLiteModuleInitParams({
+                        safe: address(safe),
+                        initialProvider: dao,
+                        initialAllowedInstrRoot: bytes32(0),
+                        initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
+                        initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                        initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                        initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
+                    }),
+                    TEST_DEPLOYMENT_SALT
+                ))
         );
 
         vm.startPrank(address(safe));

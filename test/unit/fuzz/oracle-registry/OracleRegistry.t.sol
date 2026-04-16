@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {IOracleRegistry} from "src/interfaces/IOracleRegistry.sol";
-import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
 
 import {MockERC20} from "test/mocks/MockERC20.sol";
 import {MockPriceFeed} from "test/mocks/MockPriceFeed.sol";
@@ -43,19 +43,19 @@ contract OracleRegistry_Unit_Fuzz_Test is Base_Test {
     function setUp() public override {
         Base_Test.setUp();
 
+        vm.prank(dao);
         oracleRegistry = IOracleRegistry(
-            address(
-                new MakinaLiteModule(
-                    address(registry),
-                    address(safe),
-                    dao,
-                    address(0),
-                    bytes32(0),
-                    DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
-                    DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
-                    DEFAULT_MAX_SWAP_LOSS_BPS,
-                    DEFAULT_SWAP_FEE_RATE
-                )
+            moduleFactory.createModule(
+                IMakinaLiteModule.MakinaLiteModuleInitParams({
+                    safe: address(safe),
+                    initialProvider: dao,
+                    initialAllowedInstrRoot: bytes32(0),
+                    initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
+                    initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                    initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                    initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
+                }),
+                TEST_DEPLOYMENT_SALT
             )
         );
     }

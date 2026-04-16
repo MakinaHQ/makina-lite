@@ -39,30 +39,27 @@ contract MakinaLiteModule is
     /// @dev Full scale value for fee rates
     uint256 private constant MAX_FEE_RATE = 1e18;
 
-    constructor(
-        address _registry,
-        address _safe,
-        address _provider,
-        address _weirollVm,
-        bytes32 _allowedInstrRoot,
-        uint256 _maxPositionIncreaseLossBps,
-        uint256 _maxPositionDecreaseLossBps,
-        uint256 _maxSwapLossBps,
-        uint256 _swapFeeRate
-    ) MakinaLiteContext(_registry) MakinaLiteGovernable(_safe, _provider) WeirollComponent(_weirollVm) {
-        _setAllowedInstrRoot(_allowedInstrRoot);
+    constructor(address _registry, address _weirollVm) MakinaLiteContext(_registry) WeirollComponent(_weirollVm) {
+        _disableInitializers();
+    }
 
-        _checkBps(_maxPositionIncreaseLossBps);
-        _setMaxPositionIncreaseLossBps(_maxPositionIncreaseLossBps);
+    /// @inheritdoc IMakinaLiteModule
+    function initialize(MakinaLiteModuleInitParams memory params) external override initializer {
+        __MakinaLiteGovernable(params.safe, params.initialProvider);
 
-        _checkBps(_maxPositionDecreaseLossBps);
-        _setMaxPositionDecreaseLossBps(_maxPositionDecreaseLossBps);
+        _setAllowedInstrRoot(params.initialAllowedInstrRoot);
 
-        _checkBps(_maxSwapLossBps);
-        _setMaxSwapLossBps(_maxSwapLossBps);
+        _checkBps(params.initialMaxPositionIncreaseLossBps);
+        _setMaxPositionIncreaseLossBps(params.initialMaxPositionIncreaseLossBps);
 
-        _checkFeeRate(_swapFeeRate);
-        _setSwapFeeRate(_swapFeeRate);
+        _checkBps(params.initialMaxPositionDecreaseLossBps);
+        _setMaxPositionDecreaseLossBps(params.initialMaxPositionDecreaseLossBps);
+
+        _checkBps(params.initialMaxSwapLossBps);
+        _setMaxSwapLossBps(params.initialMaxSwapLossBps);
+
+        _checkFeeRate(params.initialSwapFeeRate);
+        _setSwapFeeRate(params.initialSwapFeeRate);
     }
 
     receive() external payable {}

@@ -3,7 +3,6 @@ pragma solidity 0.8.34;
 
 import {AcrossV4BridgeEncoder} from "src/bridge-encoders/AcrossV4BridgeEncoder.sol";
 import {CctpV2BridgeEncoder} from "src/bridge-encoders/CctpV2BridgeEncoder.sol";
-import {IBridgeComponent} from "src/interfaces/IBridgeComponent.sol";
 import {LayerZeroV2BridgeEncoder} from "src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
 
 import {IMockAcrossSpokePool} from "test/mocks/IMockAcrossSpokePool.sol";

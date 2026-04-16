@@ -6,12 +6,28 @@ interface IMakinaLiteRegistry {
         uint16 indexed bridgeId, address indexed oldBridgeEncoder, address indexed newBridgeEncoder
     );
     event FeeCollectorChanged(address indexed oldFeeCollector, address indexed newFeeCollector);
+    event ModuleFactoryChanged(address indexed oldModuleFactory, address indexed newModuleFactory);
+    event ModuleImplementationChanged(address indexed oldModuleImplementation, address indexed newModuleImplementation);
+
+    /// @notice Address of the MakinaLite factory.
+    function moduleFactory() external view returns (address);
+
+    /// @notice Address of the MakinaLiteModule implementation.
+    function moduleImplementation() external view returns (address);
 
     /// @notice Address of the fee collector.
     function feeCollector() external view returns (address);
 
     /// @notice Bridge ID => Address of the corresponding bridge encoder.
     function getBridgeEncoder(uint16 bridgeId) external view returns (address);
+
+    /// @notice Sets the address of the MakinaLite factory.
+    /// @param factory The address of the MakinaLite factory.
+    function setModuleFactory(address factory) external;
+
+    /// @notice Sets the MakinaLiteModule implementation for future deployments.
+    /// @param newImplementation The address of the new implementation contract.
+    function setModuleImplementation(address newImplementation) external;
 
     /// @notice Sets the address of the fee collector.
     /// @param newFeeCollector The address of the new fee collector.

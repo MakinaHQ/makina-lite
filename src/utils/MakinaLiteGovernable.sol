@@ -1,35 +1,37 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import {Errors} from "../libraries/Errors.sol";
 import {IMakinaLiteGovernable} from "../interfaces/IMakinaLiteGovernable.sol";
 
-abstract contract MakinaLiteGovernable is IMakinaLiteGovernable {
+abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     /// @inheritdoc IMakinaLiteGovernable
-    address public immutable override safe;
+    address public override safe;
 
     /// @inheritdoc IMakinaLiteGovernable
-    address public provider;
+    address public override provider;
 
     /// @inheritdoc IMakinaLiteGovernable
-    mapping(address account => bool isOperator) public isOperator;
+    mapping(address account => bool isOperator) public override isOperator;
 
     /// @inheritdoc IMakinaLiteGovernable
-    mapping(address account => bool isGuardian) public isGuardian;
+    mapping(address account => bool isGuardian) public override isGuardian;
 
     /// @inheritdoc IMakinaLiteGovernable
-    bool public paused;
+    bool public override paused;
 
     /// @inheritdoc IMakinaLiteGovernable
-    bool public suspendedByProvider;
+    bool public override suspendedByProvider;
 
     /// @inheritdoc IMakinaLiteGovernable
-    bool public lockdownMode;
+    bool public override lockdownMode;
 
-    constructor(address _safe, address _provider) {
+    function __MakinaLiteGovernable(address _safe, address _provider) internal onlyInitializing {
         safe = _safe;
-        isGuardian[_safe] = true;
-        provider = _provider;
+        _addGuardian(_safe);
+        _setProvider(_provider);
     }
 
     modifier onlySafe() {
@@ -72,11 +74,7 @@ abstract contract MakinaLiteGovernable is IMakinaLiteGovernable {
 
     /// @inheritdoc IMakinaLiteGovernable
     function setProvider(address newProvider) external override onlyProvider {
-        if (newProvider == provider) {
-            return;
-        }
-        emit ProviderChanged(provider, newProvider);
-        provider = newProvider;
+        _setProvider(newProvider);
     }
 
     /// @inheritdoc IMakinaLiteGovernable
@@ -99,11 +97,7 @@ abstract contract MakinaLiteGovernable is IMakinaLiteGovernable {
 
     /// @inheritdoc IMakinaLiteGovernable
     function addGuardian(address newGuardian) external override onlySafe {
-        if (isGuardian[newGuardian]) {
-            revert Errors.AlreadyGuardian();
-        }
-        isGuardian[newGuardian] = true;
-        emit GuardianAdded(newGuardian);
+        _addGuardian(newGuardian);
     }
 
     /// @inheritdoc IMakinaLiteGovernable
@@ -156,5 +150,23 @@ abstract contract MakinaLiteGovernable is IMakinaLiteGovernable {
             emit Unpaused(msg.sender);
             paused = false;
         }
+    }
+
+    /// @dev Internal function to update the MakinaLite service account.
+    function _setProvider(address newProvider) internal {
+        if (newProvider == provider) {
+            return;
+        }
+        emit ProviderChanged(provider, newProvider);
+        provider = newProvider;
+    }
+
+    /// @dev Internal logic to add a new guardian.
+    function _addGuardian(address newGuardian) internal {
+        if (isGuardian[newGuardian]) {
+            revert Errors.AlreadyGuardian();
+        }
+        isGuardian[newGuardian] = true;
+        emit GuardianAdded(newGuardian);
     }
 }

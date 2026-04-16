@@ -7,18 +7,29 @@ import {AcrossV4BridgeEncoder} from "../../src/bridge-encoders/AcrossV4BridgeEnc
 import {CctpV2BridgeEncoder} from "../../src/bridge-encoders/CctpV2BridgeEncoder.sol";
 import {IntegrationIds} from "../utils/IntegrationIds.sol";
 import {LayerZeroV2BridgeEncoder} from "../../src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
+import {ModuleFactory} from "../../src/factory/ModuleFactory.sol";
+import {MakinaLiteModule} from "../../src/MakinaLiteModule.sol";
 import {MakinaLiteRegistry} from "../../src/registry/MakinaLiteRegistry.sol";
 
 abstract contract Base is IntegrationIds {
     struct MakinaLiteInfra {
         MakinaLiteRegistry registry;
+        ModuleFactory moduleFactory;
+        address makinaLiteModuleImplem;
     }
 
-    function deployMakinaLiteInfra(address _accessManager) internal returns (MakinaLiteInfra memory deployment) {
+    function deployMakinaLiteInfra(address _accessManager, address _weirollVM)
+        internal
+        returns (MakinaLiteInfra memory deployment)
+    {
         deployment.registry = _deployMakinaLiteRegistry(_accessManager, _accessManager);
+        deployment.moduleFactory = _deployModuleFactory(_accessManager, _accessManager, address(deployment.registry));
+        deployment.makinaLiteModuleImplem = _deployMakinaLiteModuleImplem(address(deployment.registry), _weirollVM);
     }
 
     function setupMakinaLiteRegistry(MakinaLiteInfra memory deployment, address feeCollector) internal {
+        deployment.registry.setModuleFactory(address(deployment.moduleFactory));
+        deployment.registry.setModuleImplementation(deployment.makinaLiteModuleImplem);
         deployment.registry.setFeeCollector(feeCollector);
     }
 
@@ -35,6 +46,25 @@ abstract contract Base is IntegrationIds {
                 )
             )
         );
+    }
+
+    function _deployModuleFactory(address _proxyOwner, address _accessManager, address _registry)
+        internal
+        returns (ModuleFactory moduleFactory)
+    {
+        address implem = _deployCode(abi.encodePacked(type(ModuleFactory).creationCode, abi.encode(_registry)));
+        return ModuleFactory(
+            _deployCode(
+                abi.encodePacked(
+                    type(TransparentUpgradeableProxy).creationCode,
+                    abi.encode(implem, _proxyOwner, abi.encodeCall(ModuleFactory.initialize, (_accessManager)))
+                )
+            )
+        );
+    }
+
+    function _deployMakinaLiteModuleImplem(address _registry, address _weirollVM) internal returns (address implem) {
+        return _deployCode(abi.encodePacked(type(MakinaLiteModule).creationCode, abi.encode(_registry, _weirollVM)));
     }
 
     function _deployAcrossV4BridgeEncoder(address _proxyOwner, address _accessManager, address _acrossV4SpokePool)
