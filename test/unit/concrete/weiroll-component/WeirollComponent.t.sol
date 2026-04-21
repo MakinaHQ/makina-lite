@@ -18,7 +18,7 @@ abstract contract WeirollComponent_Unit_Concrete_Test is Unit_Concrete_Test {
 
 contract Getters_Setters_WeirollComponent_Unit_Concrete_Test is WeirollComponent_Unit_Concrete_Test {
     function test_Getters() public view {
-        assertEq(weirollComponent.weirollVm(), address(0));
+        assertEq(weirollComponent.weirollVm(), weirollVM);
         assertEq(weirollComponent.allowedInstrRoot(), bytes32(0));
         assertEq(weirollComponent.maxPositionIncreaseLossBps(), DEFAULT_MAX_POS_INCREASE_LOSS_BPS);
         assertEq(weirollComponent.maxPositionDecreaseLossBps(), DEFAULT_MAX_POS_DECREASE_LOSS_BPS);

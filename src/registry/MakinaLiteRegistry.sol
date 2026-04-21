@@ -11,6 +11,8 @@ import {Errors} from "../libraries/Errors.sol";
 contract MakinaLiteRegistry is AccessManagedUpgradeable, IMakinaLiteRegistry {
     /// @custom:storage-location erc7201:makina.storage.MakinaLiteRegistry
     struct MakinaLiteRegistryStorage {
+        address _moduleFactory;
+        address _moduleImplementation;
         address _feeCollector;
         mapping(uint16 bridgeId => address encoder) _bridgeEncoders;
     }
@@ -19,7 +21,7 @@ contract MakinaLiteRegistry is AccessManagedUpgradeable, IMakinaLiteRegistry {
     bytes32 private constant MakinaLiteRegistryStorageLocation =
         0xef78750e7ffffd9087e6b5da2ceae6958dbfa00caaf5353b49cdf645f9a1dc00;
 
-    function _getCoreRegistryStorage() private pure returns (MakinaLiteRegistryStorage storage $) {
+    function _getMakinaLiteRegistryStorage() private pure returns (MakinaLiteRegistryStorage storage $) {
         assembly {
             $.slot := MakinaLiteRegistryStorageLocation
         }
@@ -30,13 +32,23 @@ contract MakinaLiteRegistry is AccessManagedUpgradeable, IMakinaLiteRegistry {
     }
 
     /// @inheritdoc IMakinaLiteRegistry
+    function moduleFactory() external view returns (address) {
+        return _getMakinaLiteRegistryStorage()._moduleFactory;
+    }
+
+    /// @inheritdoc IMakinaLiteRegistry
+    function moduleImplementation() external view returns (address) {
+        return _getMakinaLiteRegistryStorage()._moduleImplementation;
+    }
+
+    /// @inheritdoc IMakinaLiteRegistry
     function feeCollector() external view override returns (address) {
-        return _getCoreRegistryStorage()._feeCollector;
+        return _getMakinaLiteRegistryStorage()._feeCollector;
     }
 
     /// @inheritdoc IMakinaLiteRegistry
     function getBridgeEncoder(uint16 bridgeId) external view returns (address) {
-        address encoder = _getCoreRegistryStorage()._bridgeEncoders[bridgeId];
+        address encoder = _getMakinaLiteRegistryStorage()._bridgeEncoders[bridgeId];
         if (encoder == address(0)) {
             revert Errors.BridgeEncoderDoesNotExist();
         }
@@ -44,15 +56,29 @@ contract MakinaLiteRegistry is AccessManagedUpgradeable, IMakinaLiteRegistry {
     }
 
     /// @inheritdoc IMakinaLiteRegistry
+    function setModuleFactory(address factory) external restricted {
+        MakinaLiteRegistryStorage storage $ = _getMakinaLiteRegistryStorage();
+        emit ModuleFactoryChanged($._moduleFactory, factory);
+        $._moduleFactory = factory;
+    }
+
+    /// @inheritdoc IMakinaLiteRegistry
+    function setModuleImplementation(address newImplementation) external restricted {
+        MakinaLiteRegistryStorage storage $ = _getMakinaLiteRegistryStorage();
+        emit ModuleImplementationChanged($._moduleImplementation, newImplementation);
+        $._moduleImplementation = newImplementation;
+    }
+
+    /// @inheritdoc IMakinaLiteRegistry
     function setFeeCollector(address newFeeCollector) external restricted {
-        MakinaLiteRegistryStorage storage $ = _getCoreRegistryStorage();
+        MakinaLiteRegistryStorage storage $ = _getMakinaLiteRegistryStorage();
         emit FeeCollectorChanged($._feeCollector, newFeeCollector);
         $._feeCollector = newFeeCollector;
     }
 
     /// @inheritdoc IMakinaLiteRegistry
     function setBridgeEncoder(uint16 bridgeId, address bridgeEncoder) external restricted {
-        MakinaLiteRegistryStorage storage $ = _getCoreRegistryStorage();
+        MakinaLiteRegistryStorage storage $ = _getMakinaLiteRegistryStorage();
         emit BridgeEncoderChanged(bridgeId, $._bridgeEncoders[bridgeId], bridgeEncoder);
         $._bridgeEncoders[bridgeId] = bridgeEncoder;
     }

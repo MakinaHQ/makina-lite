@@ -58,10 +58,10 @@ interface IWeirollComponent {
     /// @dev If set to address(0), the reference currency of the OracleRegistry is used.
     function accountingCurrency() external view returns (address);
 
-    /// @notice Max allowed value loss (in basis points) when increasing a position.
+    /// @notice Max allowed value loss (in basis points) when increasing a position, while in lockdown mode.
     function maxPositionIncreaseLossBps() external view returns (uint256);
 
-    /// @notice Max allowed value loss (in basis points) when decreasing a position.
+    /// @notice Max allowed value loss (in basis points) when decreasing a position, while in lockdown mode.
     function maxPositionDecreaseLossBps() external view returns (uint256);
 
     /// @notice Accounts for a position.

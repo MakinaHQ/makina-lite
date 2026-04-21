@@ -10,6 +10,8 @@ import {Unit_Concrete_Test} from "../UnitConcrete.t.sol";
 contract MakinaLiteRegistry_Unit_Concrete_Test is Unit_Concrete_Test {
     function test_Getters() public view {
         assertEq(registry.authority(), address(accessManager));
+        assertEq(registry.moduleFactory(), address(moduleFactory));
+        assertEq(registry.moduleImplementation(), address(makinaLiteModuleImplem));
         assertEq(registry.feeCollector(), dao);
     }
 

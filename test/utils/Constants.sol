@@ -2,6 +2,8 @@
 pragma solidity 0.8.34;
 
 abstract contract Constants {
+    bytes32 public constant TEST_DEPLOYMENT_SALT = keccak256("makina.salt.test");
+
     uint32 internal constant L2_CHAIN_ID = 8453;
 
     uint256 public constant DEFAULT_PF_STALE_THRSHLD = 2 hours;

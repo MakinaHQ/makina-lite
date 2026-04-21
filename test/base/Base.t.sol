@@ -10,6 +10,7 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 
 import {Constants} from "../utils/Constants.sol";
 import {IRCodeReader} from "../utils/IRCodeReader.sol";
+import {ModuleFactory} from "../../src/factory/ModuleFactory.sol";
 import {MakinaLiteRegistry} from "../../src/registry/MakinaLiteRegistry.sol";
 import {MockSafe} from "../mocks/MockSafe.sol";
 
@@ -26,7 +27,11 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
 
     AccessManagerUpgradeable internal accessManager;
 
+    address internal weirollVM;
+
     MakinaLiteRegistry internal registry;
+    ModuleFactory internal moduleFactory;
+    address makinaLiteModuleImplem;
 
     function setUp() public virtual {
         deployer = address(this);
@@ -35,11 +40,14 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
         guardian = makeAddr("guardian");
 
         _deployAccessManager(deployer, deployer);
+        _deployWeirollVM();
 
         safe = new MockSafe();
 
-        MakinaLiteInfra memory makinaLiteInfra = deployMakinaLiteInfra(address(accessManager));
+        MakinaLiteInfra memory makinaLiteInfra = deployMakinaLiteInfra(address(accessManager), weirollVM);
         registry = makinaLiteInfra.registry;
+        moduleFactory = makinaLiteInfra.moduleFactory;
+        makinaLiteModuleImplem = makinaLiteInfra.makinaLiteModuleImplem;
 
         setupMakinaLiteRegistry(makinaLiteInfra, dao);
 
@@ -70,5 +78,9 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
                 )
             )
         );
+    }
+
+    function _deployWeirollVM() internal {
+        weirollVM = _deployCode(getWeirollVMCode());
     }
 }

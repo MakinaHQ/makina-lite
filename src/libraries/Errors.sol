@@ -49,4 +49,5 @@ library Errors {
     error ZeroAddress();
     error ZeroChainId();
     error ZeroRefundAddress();
+    error ZeroSalt();
 }
