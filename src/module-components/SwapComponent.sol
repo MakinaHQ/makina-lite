@@ -89,6 +89,7 @@ abstract contract SwapComponent is ISwapComponent {
         emit SwapperTargetsSet(swapperId, approvalTarget, executionTarget);
     }
 
+    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view

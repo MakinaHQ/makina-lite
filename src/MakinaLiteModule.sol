@@ -204,6 +204,7 @@ contract MakinaLiteModule is
         _setMaxSwapLossBps(newMaxSwapLossBps);
     }
 
+    /// @inheritdoc ISwapComponent
     function setSwapFeeRate(uint256 newSwapFeeRate) external override onlyProvider {
         _checkFeeRate(newSwapFeeRate);
         _setSwapFeeRate(newSwapFeeRate);
@@ -260,7 +261,7 @@ contract MakinaLiteModule is
         }
     }
 
-    /// @dev Internal logic to execute swap tokens on behalf of Safe using a given swapper.
+    /// @dev Internal logic to execute token swaps on behalf of Safe using a given swapper.
     function _swapForSafe(ISwapComponent.SwapOrder calldata order) internal {
         _pullERC20FromSafe(order.inputToken, order.inputAmount, address(this));
 
@@ -271,7 +272,7 @@ contract MakinaLiteModule is
         IERC20Metadata(order.outputToken).safeTransfer(safe, amountOut - fee);
     }
 
-    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price feed.
+    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view

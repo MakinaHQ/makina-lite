@@ -12,8 +12,9 @@ interface IBridgeComponent {
     /// @param bridgeId The ID of the bridge.
     /// @param destinationChainId The destination EVM chain ID
     /// @param recipient The address of the recipient
-    /// @param inputAsset The address of the input token.
-    /// @param inputAmount The amount of address of the input asse
+    /// @param inputToken The address of the input token.
+    /// @param inputAmount The amount of input token to bridge.
+    /// @param minOutputAmount The minimum amount of output token expected.
     /// @param extraData Extra data specific to each bridge integration
     struct BridgeOrder {
         uint16 bridgeId;
