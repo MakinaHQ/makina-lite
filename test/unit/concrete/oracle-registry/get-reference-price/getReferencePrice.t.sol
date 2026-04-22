@@ -18,11 +18,6 @@ contract GetReferencePrice_Unit_Concrete_Test is OracleRegistry_Unit_Concrete_Te
     MockPriceFeed internal basePriceFeed1;
     MockPriceFeed internal basePriceFeed2;
 
-    function setUp() public override {
-        OracleRegistry_Unit_Concrete_Test.setUp();
-        baseToken = new MockERC20("Base Token", "BT", 18);
-    }
-
     function test_RevertGiven_BaseTokenFeedRouteNotRegistered() public {
         vm.expectRevert(abi.encodeWithSelector(Errors.PriceFeedRouteNotRegistered.selector, address(baseToken)));
         oracleRegistry.getReferencePrice(address(baseToken));
@@ -107,6 +102,6 @@ contract GetReferencePrice_Unit_Concrete_Test is OracleRegistry_Unit_Concrete_Te
         );
 
         uint256 price = oracleRegistry.getReferencePrice(address(baseToken));
-        assertEq(price, PRICE_A_E * (10 ** DecimalsUtils.DEFAULT_DECIMALS));
+        assertEq(price, PRICE_A_E * (10 ** DecimalsUtils.REFERENCE_CURRENCY_DECIMALS));
     }
 }

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {BridgeComponent} from "./module-components/BridgeComponent.sol";
-import {DecimalsUtils} from "./libraries/DecimalsUtils.sol";
 import {IBridgeComponent} from "./interfaces/IBridgeComponent.sol";
 import {IMakinaLiteModule} from "./interfaces/IMakinaLiteModule.sol";
 import {IMakinaLiteRegistry} from "./interfaces/IMakinaLiteRegistry.sol";
@@ -31,7 +31,7 @@ contract MakinaLiteModule is
     IMakinaLiteModule
 {
     using Math for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     /// @dev Full scale value in basis points
     uint256 private constant MAX_BPS = 10_000;
@@ -248,8 +248,8 @@ contract MakinaLiteModule is
 
     /// @inheritdoc IMakinaLiteModule
     function sweepERC20(address token) external nonReentrant onlySafe {
-        uint256 bal = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransfer(safe, bal);
+        uint256 bal = IERC20Metadata(token).balanceOf(address(this));
+        IERC20Metadata(token).safeTransfer(safe, bal);
     }
 
     /// @inheritdoc IMakinaLiteModule
@@ -268,7 +268,7 @@ contract MakinaLiteModule is
 
         uint256 fee = _chargeSwapFee(order.outputToken, amountOut);
 
-        IERC20(order.outputToken).safeTransfer(safe, amountOut - fee);
+        IERC20Metadata(order.outputToken).safeTransfer(safe, amountOut - fee);
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price feed.
@@ -289,7 +289,7 @@ contract MakinaLiteModule is
             price = getPrice(baseToken, quoteToken);
         }
 
-        return baseTokenAmount.mulDiv(price, 10 ** DecimalsUtils._getDecimals(baseToken));
+        return baseTokenAmount.mulDiv(price, 10 ** IERC20Metadata(baseToken).decimals());
     }
 
     /// @dev Transfers `amount` of ERC20 `token` from the Safe to the flash loan module via a module call.
@@ -336,7 +336,7 @@ contract MakinaLiteModule is
         uint256 fee = amountOut.mulDiv(swapFeeRate, MAX_FEE_RATE);
         if (fee > 0) {
             address feeCollector = IMakinaLiteRegistry(registry).feeCollector();
-            IERC20(tokenOut).safeTransfer(feeCollector, fee);
+            IERC20Metadata(tokenOut).safeTransfer(feeCollector, fee);
         }
 
         return fee;

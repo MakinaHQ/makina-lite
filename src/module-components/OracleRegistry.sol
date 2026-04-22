@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {AggregatorV2V3Interface} from "../interfaces/AggregatorV2V3Interface.sol";
@@ -41,7 +42,7 @@ abstract contract OracleRegistry is IOracleRegistry {
         }
 
         uint8 baseFRDecimalsSum = _getFeedDecimals(baseFR.feed1) + _getFeedDecimals(baseFR.feed2);
-        uint8 quoteTokenDecimals = DecimalsUtils.DEFAULT_DECIMALS;
+        uint8 quoteTokenDecimals = DecimalsUtils.REFERENCE_CURRENCY_DECIMALS;
 
         // price = 10^(refCurrencyDecimals - baseFeedsDecimalsSum) *
         //  (baseFeedPrice1 * baseFeedPrice2)
@@ -69,7 +70,7 @@ abstract contract OracleRegistry is IOracleRegistry {
 
         uint8 baseFRDecimalsSum = _getFeedDecimals(baseFR.feed1) + _getFeedDecimals(baseFR.feed2);
         uint8 quoteFRDecimalsSum = _getFeedDecimals(quoteFR.feed1) + _getFeedDecimals(quoteFR.feed2);
-        uint8 quoteTokenDecimals = DecimalsUtils._getDecimals(quoteToken);
+        uint8 quoteTokenDecimals = IERC20Metadata(quoteToken).decimals();
 
         // price = 10^(quoteTokenDecimals + quoteFeedsDecimalsSum - baseFeedsDecimalsSum) *
         //  (baseFeedPrice1 * baseFeedPrice2) / (quoteFeedPrice1 * quoteFeedPrice2)
@@ -125,10 +126,7 @@ abstract contract OracleRegistry is IOracleRegistry {
             revert Errors.InvalidFeedRoute();
         }
 
-        uint8 tokenDecimals = DecimalsUtils._getDecimals(token);
-        if (tokenDecimals < DecimalsUtils.MIN_DECIMALS || tokenDecimals > DecimalsUtils.MAX_DECIMALS) {
-            revert Errors.InvalidDecimals();
-        }
+        DecimalsUtils._checkDecimals(token);
 
         _feedRoutes[token] = FeedRoute({feed1: feed1, feed2: feed2});
 
