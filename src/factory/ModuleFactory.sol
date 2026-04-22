@@ -22,7 +22,7 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
     bytes32 private constant ModuleFactoryStorageLocation =
         0x13c0aa9cf01ea4a55fe2c5301d9fa8e9cd0e82c169c42cf1800b1faae24f0800;
 
-    function _getLiteFactoryStorage() private pure returns (ModuleFactoryStorage storage $) {
+    function _getModuleFactoryStorage() private pure returns (ModuleFactoryStorage storage $) {
         assembly {
             $.slot := ModuleFactoryStorageLocation
         }
@@ -36,7 +36,7 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
 
     /// @inheritdoc IModuleFactory
     function isMakinaLiteModule(address module) external view returns (bool) {
-        return _getLiteFactoryStorage()._isMakinaLiteModule[module];
+        return _getModuleFactoryStorage()._isMakinaLiteModule[module];
     }
 
     /// @inheritdoc IModuleFactory
@@ -45,7 +45,7 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
         restricted
         returns (address)
     {
-        ModuleFactoryStorage storage $ = _getLiteFactoryStorage();
+        ModuleFactoryStorage storage $ = _getModuleFactoryStorage();
 
         if (salt == bytes32(0)) {
             revert Errors.ZeroSalt();
