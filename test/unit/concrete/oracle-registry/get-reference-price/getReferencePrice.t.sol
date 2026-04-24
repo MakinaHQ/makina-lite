@@ -3,7 +3,6 @@ pragma solidity 0.8.34;
 
 import {DecimalsUtils} from "src/libraries/DecimalsUtils.sol";
 import {Errors} from "src/libraries/Errors.sol";
-import {MockERC20} from "test/mocks/MockERC20.sol";
 import {MockPriceFeed} from "test/mocks/MockPriceFeed.sol";
 
 import {OracleRegistry_Unit_Concrete_Test} from "../OracleRegistry.t.sol";
@@ -17,11 +16,6 @@ contract GetReferencePrice_Unit_Concrete_Test is OracleRegistry_Unit_Concrete_Te
 
     MockPriceFeed internal basePriceFeed1;
     MockPriceFeed internal basePriceFeed2;
-
-    function setUp() public override {
-        OracleRegistry_Unit_Concrete_Test.setUp();
-        baseToken = new MockERC20("Base Token", "BT", 18);
-    }
 
     function test_RevertGiven_BaseTokenFeedRouteNotRegistered() public {
         vm.expectRevert(abi.encodeWithSelector(Errors.PriceFeedRouteNotRegistered.selector, address(baseToken)));
@@ -107,6 +101,6 @@ contract GetReferencePrice_Unit_Concrete_Test is OracleRegistry_Unit_Concrete_Te
         );
 
         uint256 price = oracleRegistry.getReferencePrice(address(baseToken));
-        assertEq(price, PRICE_A_E * (10 ** DecimalsUtils.DEFAULT_DECIMALS));
+        assertEq(price, PRICE_A_E * (10 ** DecimalsUtils.REFERENCE_CURRENCY_DECIMALS));
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.34;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -200,7 +200,7 @@ abstract contract WeirollComponent is IWeirollComponent {
         return currentValue;
     }
 
-    /// @dev Internal logc to harvest one or multiple positions.
+    /// @dev Internal logic to harvest one or multiple positions.
     function _harvest(IWeirollComponent.Instruction calldata instruction, address safe) internal {
         if (instruction.instructionType != InstructionType.HARVEST) {
             revert Errors.InvalidInstructionType();
@@ -352,11 +352,13 @@ abstract contract WeirollComponent is IWeirollComponent {
         return abi.decode(returnData, (bytes[]));
     }
 
+    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view
         virtual
         returns (uint256);
 
+    /// @dev Transfers `amount` of ERC20 `token` from the Safe to the flash loan module via a module call.
     function _refundFlashLoan(address token, uint256 amount, address flashLoanModule) internal virtual;
 }

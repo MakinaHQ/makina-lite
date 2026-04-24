@@ -13,7 +13,6 @@ library Errors {
     error InstructionsMismatch();
     error InvalidAccounting();
     error InvalidBpsValue();
-    error InvalidBridgeTransferRoute();
     error InvalidDataHash();
     error InvalidDebtFlag();
     error InvalidDecimals();
@@ -25,11 +24,11 @@ library Errors {
     error InvalidInstructionProof();
     error InvalidInstructionType();
     error InvalidLzSentAmount();
-    error OftMismatch();
     error InvalidPositionChangeDirection();
     error LzEndpointIdNotRegistered();
     error ManageFlashLoanReentrantCall();
     error MaxValueLossExceeded();
+    error MinOutputAmountExceedsInputAmount();
     error MismatchedLengths();
     error NegativeTokenPrice(address priceFeed);
     error NotFlashLoanModule();
@@ -37,6 +36,7 @@ library Errors {
     error NotMorpho();
     error NotOperator();
     error OftAlreadyRegistered();
+    error OftMismatch();
     error OftNotRegistered();
     error Paused();
     error ProtectedCctpDomain();
@@ -56,6 +56,7 @@ library Errors {
     error UnauthorizedCaller();
     error ZeroAddress();
     error ZeroChainId();
+    error ZeroLzEndpointId();
     error ZeroPositionId();
     error ZeroRefundAddress();
     error ZeroSalt();

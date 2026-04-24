@@ -40,7 +40,6 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         makinaLiteModule.pause();
 
         vm.expectRevert(Errors.Paused.selector);
-        vm.prank(operator);
         makinaLiteModule.managePosition(dummyInstruction, dummyInstruction);
 
         // module suspended + paused
@@ -48,7 +47,6 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         makinaLiteModule.suspend();
 
         vm.expectRevert(Errors.Suspended.selector);
-        vm.prank(operator);
         makinaLiteModule.managePosition(dummyInstruction, dummyInstruction);
 
         // module suspended
@@ -56,7 +54,6 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         makinaLiteModule.unpause();
 
         vm.expectRevert(Errors.Suspended.selector);
-        vm.prank(operator);
         makinaLiteModule.managePosition(dummyInstruction, dummyInstruction);
     }
 
@@ -240,6 +237,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
     }
 
     function test_RevertGiven_ProvidedSecondInstructionFails() public {
+        vault.setAccountingDisabled(true);
+
         IWeirollComponent.Instruction memory mgmtInstruction =
             _build4626DepositInstruction(address(safe), VAULT_POS_ID, address(vault), 3e18);
         IWeirollComponent.Instruction memory acctInstruction =
@@ -277,8 +276,6 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
     }
 
     function test_RevertGiven_ProvidedFirstInstructionFails() public {
-        vault.setAccountingDisabled(true);
-
         IWeirollComponent.Instruction memory mgmtInstruction =
             _build4626DepositInstruction(address(safe), VAULT_POS_ID, address(vault), 3e18);
         IWeirollComponent.Instruction memory acctInstruction =

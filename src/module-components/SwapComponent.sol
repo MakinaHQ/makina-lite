@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.34;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -46,7 +46,7 @@ abstract contract SwapComponent is ISwapComponent {
         uint256 balBefore = IERC20(order.outputToken).balanceOf(address(this));
 
         IERC20(order.inputToken).forceApprove(approvalTarget, order.inputAmount);
-        // solhint-disable-next-line
+        // solhint-disable-next-line avoid-low-level-calls
         (bool success,) = executionTarget.call(order.data);
         if (!success) {
             revert Errors.SwapFailed();
@@ -89,6 +89,7 @@ abstract contract SwapComponent is ISwapComponent {
         emit SwapperTargetsSet(swapperId, approvalTarget, executionTarget);
     }
 
+    /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.
     function _valueOf(address baseToken, address quoteToken, uint256 baseTokenAmount)
         internal
         view

@@ -2,7 +2,6 @@
 pragma solidity 0.8.34;
 
 import {Errors} from "src/libraries/Errors.sol";
-import {MockERC20} from "test/mocks/MockERC20.sol";
 import {MockPriceFeed} from "test/mocks/MockPriceFeed.sol";
 import {IOracleRegistry} from "src/interfaces/IOracleRegistry.sol";
 
@@ -17,7 +16,6 @@ contract SetFeedStaleThreshold_Unit_Concrete_Test is OracleRegistry_Unit_Concret
     }
 
     function test_SetFeedStaleThreshold() public {
-        baseToken = new MockERC20("Base Token", "BT", 18);
         priceFeed1 = new MockPriceFeed(18, 1e18, block.timestamp);
 
         assertEq(oracleRegistry.getFeedStaleThreshold(address(priceFeed1)), 0);
