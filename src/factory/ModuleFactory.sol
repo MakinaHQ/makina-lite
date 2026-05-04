@@ -40,11 +40,11 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
     }
 
     /// @inheritdoc IModuleFactory
-    function createModule(IMakinaLiteModule.MakinaLiteModuleInitParams calldata params, bytes32 salt)
-        external
-        restricted
-        returns (address)
-    {
+    function createModule(
+        IMakinaLiteModule.MakinaLiteModuleInitParams calldata params,
+        bytes32 salt,
+        bytes32 referralKey
+    ) external restricted returns (address) {
         ModuleFactoryStorage storage $ = _getModuleFactoryStorage();
 
         if (salt == bytes32(0)) {
@@ -56,7 +56,7 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
         address module = Clones.cloneDeterministic(implementation, salt);
         IMakinaLiteModule(module).initialize(params);
 
-        emit MakinaLiteModuleCreated(module, implementation);
+        emit MakinaLiteModuleCreated(module, implementation, referralKey);
 
         $._isMakinaLiteModule[module] = true;
 
