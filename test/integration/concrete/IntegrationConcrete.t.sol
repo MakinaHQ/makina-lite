@@ -64,7 +64,8 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
                         initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
                         initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
-                    TEST_DEPLOYMENT_SALT
+                    TEST_DEPLOYMENT_SALT,
+                    0
                 ))
         );
 

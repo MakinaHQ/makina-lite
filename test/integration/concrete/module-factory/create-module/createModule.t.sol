@@ -17,7 +17,7 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
         IMakinaLiteModule.MakinaLiteModuleInitParams memory params;
 
         vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, address(this)));
-        moduleFactory.createModule(params, bytes32(0));
+        moduleFactory.createModule(params, bytes32(0), 0);
     }
 
     function test_RevertWhen_ZeroSalt() public {
@@ -25,7 +25,7 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
 
         vm.prank(dao);
         vm.expectRevert(Errors.ZeroSalt.selector);
-        moduleFactory.createModule(params, bytes32(0));
+        moduleFactory.createModule(params, bytes32(0), 0);
     }
 
     function test_RevertWhen_SaltAlreadyUsed() public {
@@ -33,7 +33,7 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
 
         vm.prank(dao);
         vm.expectRevert(OZErrors.FailedDeployment.selector);
-        moduleFactory.createModule(params, TEST_DEPLOYMENT_SALT);
+        moduleFactory.createModule(params, TEST_DEPLOYMENT_SALT, 0);
     }
 
     function test_RevertWhen_ZeroSafe() public {
@@ -42,18 +42,19 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
 
         vm.prank(dao);
         vm.expectRevert(Errors.ZeroAddress.selector);
-        moduleFactory.createModule(params, salt);
+        moduleFactory.createModule(params, salt, 0);
     }
 
     function test_CreateModule() public {
         bytes32 initialAllowedInstrRoot = bytes32("0x12345");
         bytes32 salt = bytes32(uint256(TEST_DEPLOYMENT_SALT) + 1);
+        bytes32 referralKey = bytes32("referralKey");
 
         address expectedModuleAddr =
             Clones.predictDeterministicAddress(makinaLiteModuleImplem, salt, address(moduleFactory));
 
         vm.expectEmit(true, true, false, false, address(moduleFactory));
-        emit IModuleFactory.MakinaLiteModuleCreated(expectedModuleAddr, makinaLiteModuleImplem);
+        emit IModuleFactory.MakinaLiteModuleCreated(expectedModuleAddr, makinaLiteModuleImplem, referralKey);
 
         vm.prank(dao);
         makinaLiteModule = MakinaLiteModule(
@@ -67,7 +68,8 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
                         initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
                         initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
-                    salt
+                    salt,
+                    referralKey
                 ))
         );
 
