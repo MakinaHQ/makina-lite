@@ -11,27 +11,20 @@ import {ILayerZeroV2BridgeEncoder} from "../interfaces/ILayerZeroV2BridgeEncoder
 import {IOFT} from "../interfaces/IOFT.sol";
 import {Errors} from "../libraries/Errors.sol";
 
-contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2BridgeEncoder {
+contract LayerZeroV2BridgeEncoder layout at erc7201("makina.storage.LayerZeroV2BridgeEncoder")
+    is
+    AccessManagedUpgradeable,
+    ILayerZeroV2BridgeEncoder
+{
     // Packed prefix: TYPE_3 | WORKER_ID | OPTION LENGTH | OPTION_TYPE_LZRECEIVE
     // = 0x0003 | 0x01 | 0x0011 | 0x01
     bytes6 internal constant EXECUTOR_LZRECEIVE_PREFIX = 0x000301001101;
 
-    /// @custom:storage-location erc7201:makina.storage.LayerZeroV2BridgeEncoder
-    struct LayerZeroV2BridgeEncoderStorage {
-        mapping(uint256 evmChainId => uint32 lzEndpointId) _evmToLzId;
-        mapping(uint32 lzEndpointId => uint256 evmChainId) _lzToEvmId;
-        mapping(address oft => bool isRegistered) _isOftRegistered;
-    }
+    /// @inheritdoc ILayerZeroV2BridgeEncoder
+    mapping(address oft => bool isRegistered) public isOftRegistered;
 
-    // keccak256(abi.encode(uint256(keccak256("makina.storage.LayerZeroV2BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant LayerZeroV2BridgeEncoderStorageLocation =
-        0xecd8981fd5d1fee10c72726d865a16a974a3b620f0b56ff7bc8172fd1d9bcb00;
-
-    function _getLayerZeroV2BridgeEncoderStorage() private pure returns (LayerZeroV2BridgeEncoderStorage storage $) {
-        assembly {
-            $.slot := LayerZeroV2BridgeEncoderStorageLocation
-        }
-    }
+    mapping(uint256 evmChainId => uint32 lzEndpointId) private _evmToLzId;
+    mapping(uint32 lzEndpointId => uint256 evmChainId) private _lzToEvmId;
 
     constructor() {
         _disableInitializers();
@@ -43,16 +36,11 @@ contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2Bridg
 
     /// @inheritdoc ILayerZeroV2BridgeEncoder
     function getLzEndpointId(uint256 evmChainId) public view override returns (uint32) {
-        uint32 eid = _getLayerZeroV2BridgeEncoderStorage()._evmToLzId[evmChainId];
+        uint32 eid = _evmToLzId[evmChainId];
         if (eid == 0) {
             revert Errors.LzEndpointIdNotRegistered();
         }
         return eid;
-    }
-
-    /// @inheritdoc ILayerZeroV2BridgeEncoder
-    function isOftRegistered(address oft) public view override returns (bool) {
-        return _getLayerZeroV2BridgeEncoderStorage()._isOftRegistered[oft];
     }
 
     /// @inheritdoc IBridgeEncoder
@@ -63,7 +51,7 @@ contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2Bridg
         returns (address, address, uint256, bytes memory)
     {
         (address oft, uint128 lzReceiveGas, uint256 maxValue) = abi.decode(order.extraData, (address, uint128, uint256));
-        if (lockdownMode && !_getLayerZeroV2BridgeEncoderStorage()._isOftRegistered[oft]) {
+        if (lockdownMode && !isOftRegistered[oft]) {
             revert Errors.OftNotRegistered();
         }
 
@@ -113,8 +101,6 @@ contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2Bridg
 
     /// @inheritdoc ILayerZeroV2BridgeEncoder
     function setLzEndpointId(uint256 evmChainId, uint32 lzEndpointId) external override restricted {
-        LayerZeroV2BridgeEncoderStorage storage $ = _getLayerZeroV2BridgeEncoderStorage();
-
         if (evmChainId == 0) {
             revert Errors.ZeroChainId();
         }
@@ -123,49 +109,45 @@ contract LayerZeroV2BridgeEncoder is AccessManagedUpgradeable, ILayerZeroV2Bridg
             revert Errors.ZeroLzEndpointId();
         }
 
-        uint32 oldLz = $._evmToLzId[evmChainId];
+        uint32 oldLz = _evmToLzId[evmChainId];
         if (oldLz != 0) {
-            delete $._lzToEvmId[oldLz];
+            delete _lzToEvmId[oldLz];
         }
 
-        uint256 oldEvm = $._lzToEvmId[lzEndpointId];
+        uint256 oldEvm = _lzToEvmId[lzEndpointId];
         if (oldEvm != 0) {
-            delete $._evmToLzId[oldEvm];
+            delete _evmToLzId[oldEvm];
         }
 
-        $._evmToLzId[evmChainId] = lzEndpointId;
-        $._lzToEvmId[lzEndpointId] = evmChainId;
+        _evmToLzId[evmChainId] = lzEndpointId;
+        _lzToEvmId[lzEndpointId] = evmChainId;
         emit LzEndpointIdRegistered(evmChainId, lzEndpointId);
     }
 
     /// @inheritdoc ILayerZeroV2BridgeEncoder
     function addOft(address oft) external override restricted {
-        LayerZeroV2BridgeEncoderStorage storage $ = _getLayerZeroV2BridgeEncoderStorage();
-
         if (oft == address(0)) {
             revert Errors.ZeroAddress();
         }
 
-        if ($._isOftRegistered[oft]) {
+        if (isOftRegistered[oft]) {
             revert Errors.OftAlreadyRegistered();
         }
-        $._isOftRegistered[oft] = true;
+        isOftRegistered[oft] = true;
 
         emit OftAdded(oft);
     }
 
     /// @inheritdoc ILayerZeroV2BridgeEncoder
     function removeOft(address oft) external override restricted {
-        LayerZeroV2BridgeEncoderStorage storage $ = _getLayerZeroV2BridgeEncoderStorage();
-
         if (oft == address(0)) {
             revert Errors.ZeroAddress();
         }
 
-        if (!$._isOftRegistered[oft]) {
+        if (!isOftRegistered[oft]) {
             revert Errors.OftNotRegistered();
         }
-        $._isOftRegistered[oft] = false;
+        isOftRegistered[oft] = false;
 
         emit OftRemoved(oft);
     }
