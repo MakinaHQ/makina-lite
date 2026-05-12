@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 abstract contract SaltDomains {
     bytes32 internal constant MAKINA_LITE_REGISTRY_SALT_DOMAIN = keccak256("makina.salt.MakinaLiteRegistry");

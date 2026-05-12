@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {Errors} from "src/libraries/Errors.sol";
 import {FlashLoanModule} from "src/flash-loans/FlashLoanModule.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 /// @dev Misc utils for interacting with the CreateX Factory.
 /// See https://github.com/pcaversaccio/createx/blob/main/src/CreateX.sol

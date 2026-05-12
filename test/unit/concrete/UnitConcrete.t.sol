@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
