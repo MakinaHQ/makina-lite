@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import "forge-std/Test.sol";
 
@@ -35,7 +35,7 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
 
     MakinaLiteRegistry internal registry;
     ModuleFactory internal moduleFactory;
-    address makinaLiteModuleImplem;
+    address internal makinaLiteModuleImplem;
     FlashLoanModule internal flashLoanModule;
 
     function setUp() public virtual {

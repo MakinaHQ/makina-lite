@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {IAccessManager} from "@openzeppelin/contracts/access/manager/IAccessManager.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -108,10 +108,7 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
     }
 
     function _deployMakinaLiteModuleImplem(address _registry, address _weirollVM) internal returns (address implem) {
-        return _deployCode(
-            abi.encodePacked(type(MakinaLiteModule).creationCode, abi.encode(_registry, _weirollVM)),
-            MAKINA_LITE_MODULE_IMPLEM_SALT_DOMAIN
-        );
+        return _deployCode(abi.encodePacked(type(MakinaLiteModule).creationCode, abi.encode(_registry, _weirollVM)), 0);
     }
 
     function _deployFlashLoanModule(address _moduleFactory, FlashLoanProviders memory flProviders)
@@ -120,8 +117,7 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
     {
         return FlashLoanModule(
             _deployCode(
-                abi.encodePacked(type(FlashLoanModule).creationCode, abi.encode(_moduleFactory, flProviders.morpho)),
-                FLASH_LOAN_MODULE_SALT_DOMAIN
+                abi.encodePacked(type(FlashLoanModule).creationCode, abi.encode(_moduleFactory, flProviders.morpho)), 0
             )
         );
     }

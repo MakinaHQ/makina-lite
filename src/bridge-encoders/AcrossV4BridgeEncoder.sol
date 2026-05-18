@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {
     AccessManagedUpgradeable
@@ -12,26 +12,17 @@ import {IBridgeComponent} from "../interfaces/IBridgeComponent.sol";
 import {IBridgeEncoder} from "../interfaces/IBridgeEncoder.sol";
 import {Errors} from "../libraries/Errors.sol";
 
-contract AcrossV4BridgeEncoder is AccessManagedUpgradeable, IAcrossV4BridgeEncoder {
+contract AcrossV4BridgeEncoder layout at erc7201("makina.storage.AcrossV4BridgeEncoder")
+    is
+    AccessManagedUpgradeable,
+    IAcrossV4BridgeEncoder
+{
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address public immutable acrossV4SpokePool;
 
-    /// @custom:storage-location erc7201:makina.storage.AcrossV4BridgeEncoder
-    struct AcrossV4BridgeEncoderStorage {
-        mapping(address localToken => mapping(uint256 chainId => EnumerableSet.AddressSet foreignTokens))
-            _foreignTokens;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("makina.storage.AcrossV4BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AcrossV4BridgeEncoderStorageLocation =
-        0x7ac48160dcadfe48aa9955deee253225b971e43ffbc0563788d75cfc0c119200;
-
-    function _getAcrossV4BridgeEncoderStorage() private pure returns (AcrossV4BridgeEncoderStorage storage $) {
-        assembly {
-            $.slot := AcrossV4BridgeEncoderStorageLocation
-        }
-    }
+    mapping(address localToken => mapping(uint256 chainId => EnumerableSet.AddressSet foreignTokens)) private
+        _foreignTokens;
 
     constructor(address _acrossV4SpokePool) {
         acrossV4SpokePool = _acrossV4SpokePool;
@@ -49,7 +40,7 @@ contract AcrossV4BridgeEncoder is AccessManagedUpgradeable, IAcrossV4BridgeEncod
         override
         returns (bool)
     {
-        return _getAcrossV4BridgeEncoderStorage()._foreignTokens[inputToken][foreignChainId].contains(outputToken);
+        return _foreignTokens[inputToken][foreignChainId].contains(outputToken);
     }
 
     /// @inheritdoc IBridgeEncoder
@@ -92,7 +83,7 @@ contract AcrossV4BridgeEncoder is AccessManagedUpgradeable, IAcrossV4BridgeEncod
 
     /// @inheritdoc IAcrossV4BridgeEncoder
     function addRoute(address inputToken, uint256 foreignChainId, address outputToken) external override restricted {
-        if (!_getAcrossV4BridgeEncoderStorage()._foreignTokens[inputToken][foreignChainId].add(outputToken)) {
+        if (!_foreignTokens[inputToken][foreignChainId].add(outputToken)) {
             revert Errors.RouteAlreadyRegistered();
         }
 
@@ -101,7 +92,7 @@ contract AcrossV4BridgeEncoder is AccessManagedUpgradeable, IAcrossV4BridgeEncod
 
     /// @inheritdoc IAcrossV4BridgeEncoder
     function removeRoute(address inputToken, uint256 foreignChainId, address outputToken) external override restricted {
-        if (!_getAcrossV4BridgeEncoderStorage()._foreignTokens[inputToken][foreignChainId].remove(outputToken)) {
+        if (!_foreignTokens[inputToken][foreignChainId].remove(outputToken)) {
             revert Errors.RouteNotRegistered();
         }
 

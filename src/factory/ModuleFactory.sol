@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {
     AccessManagedUpgradeable
@@ -12,21 +12,14 @@ import {IMakinaLiteRegistry} from "../interfaces/IMakinaLiteRegistry.sol";
 import {MakinaLiteContext} from "../utils/MakinaLiteContext.sol";
 import {IModuleFactory} from "../interfaces/IModuleFactory.sol";
 
-contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFactory {
-    /// @custom:storage-location erc7201:makina.storage.ModuleFactory
-    struct ModuleFactoryStorage {
-        mapping(address module => bool isModule) _isMakinaLiteModule;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("makina.storage.ModuleFactory")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ModuleFactoryStorageLocation =
-        0x13c0aa9cf01ea4a55fe2c5301d9fa8e9cd0e82c169c42cf1800b1faae24f0800;
-
-    function _getModuleFactoryStorage() private pure returns (ModuleFactoryStorage storage $) {
-        assembly {
-            $.slot := ModuleFactoryStorageLocation
-        }
-    }
+contract ModuleFactory layout at erc7201("makina.storage.ModuleFactory")
+    is
+    MakinaLiteContext,
+    AccessManagedUpgradeable,
+    IModuleFactory
+{
+    /// @inheritdoc IModuleFactory
+    mapping(address module => bool isModule) public isMakinaLiteModule;
 
     constructor(address _registry) MakinaLiteContext(_registry) {}
 
@@ -35,18 +28,11 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
     }
 
     /// @inheritdoc IModuleFactory
-    function isMakinaLiteModule(address module) external view returns (bool) {
-        return _getModuleFactoryStorage()._isMakinaLiteModule[module];
-    }
-
-    /// @inheritdoc IModuleFactory
     function createModule(
         IMakinaLiteModule.MakinaLiteModuleInitParams calldata params,
         bytes32 salt,
         bytes32 referralKey
     ) external restricted returns (address) {
-        ModuleFactoryStorage storage $ = _getModuleFactoryStorage();
-
         if (salt == bytes32(0)) {
             revert Errors.ZeroSalt();
         }
@@ -58,7 +44,7 @@ contract ModuleFactory is MakinaLiteContext, AccessManagedUpgradeable, IModuleFa
 
         emit MakinaLiteModuleCreated(module, implementation, referralKey);
 
-        $._isMakinaLiteModule[module] = true;
+        isMakinaLiteModule[module] = true;
 
         return module;
     }

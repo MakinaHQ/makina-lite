@@ -3,7 +3,7 @@
   "rules": {
     "one-contract-per-file": "off",
     "code-complexity": ["error", 15],
-    "compiler-version": ["error", "^0.8.34"],
+    "compiler-version": ["error", "^0.8.28"],
     "func-name-mixedcase": "off",
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "no-empty-blocks": "off",

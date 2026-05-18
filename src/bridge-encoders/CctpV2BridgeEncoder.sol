@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.34;
+pragma solidity 0.8.35;
 
 import {
     AccessManagedUpgradeable
@@ -11,7 +11,11 @@ import {ICctpV2BridgeEncoder} from "../interfaces/ICctpV2BridgeEncoder.sol";
 import {ICctpV2TokenMessenger} from "../interfaces/ICctpV2TokenMessenger.sol";
 import {Errors} from "../libraries/Errors.sol";
 
-contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
+contract CctpV2BridgeEncoder layout at erc7201("makina.storage.CctpV2BridgeEncoder")
+    is
+    AccessManagedUpgradeable,
+    ICctpV2BridgeEncoder
+{
     uint256 private constant MAINNET_CHAIN_ID = 1;
     uint32 private constant MAINNET_CCTP_DOMAIN = 0;
 
@@ -21,21 +25,8 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
     /// @inheritdoc ICctpV2BridgeEncoder
     address public immutable cctpV2TokenMessenger;
 
-    /// @custom:storage-location erc7201:makina.storage.CctpV2BridgeEncoder
-    struct CctpV2BridgeEncoderStorage {
-        mapping(uint256 evmChainId => uint32 cctpDomain) _evmToCctpId;
-        mapping(uint32 cctpDomain => uint256 evmChainId) _cctpToEvmId;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("makina.storage.CctpV2BridgeEncoder")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant CctpV2BridgeEncoderStorageLocation =
-        0xf328330f3f10dab15d2017eb5a9b8f097a1f885a67bf8c1c3d0c92f22ff92700;
-
-    function _getCctpV2BridgeEncoderStorage() private pure returns (CctpV2BridgeEncoderStorage storage $) {
-        assembly {
-            $.slot := CctpV2BridgeEncoderStorageLocation
-        }
-    }
+    mapping(uint256 evmChainId => uint32 cctpDomain) private _evmToCctpId;
+    mapping(uint32 cctpDomain => uint256 evmChainId) private _cctpToEvmId;
 
     constructor(address _cctpV2TokenMessenger) {
         cctpV2TokenMessenger = _cctpV2TokenMessenger;
@@ -53,7 +44,7 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
         if (evmChainId == MAINNET_CHAIN_ID) {
             return MAINNET_CCTP_DOMAIN;
         }
-        uint32 cctpDomain = _getCctpV2BridgeEncoderStorage()._evmToCctpId[evmChainId];
+        uint32 cctpDomain = _evmToCctpId[evmChainId];
         if (cctpDomain == 0) {
             revert Errors.CctpDomainNotRegistered();
         }
@@ -95,8 +86,6 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
 
     /// @inheritdoc ICctpV2BridgeEncoder
     function setCctpDomain(uint256 evmChainId, uint32 cctpDomain) external override restricted {
-        CctpV2BridgeEncoderStorage storage $ = _getCctpV2BridgeEncoderStorage();
-
         if (evmChainId == 0) {
             revert Errors.ZeroChainId();
         }
@@ -107,18 +96,18 @@ contract CctpV2BridgeEncoder is AccessManagedUpgradeable, ICctpV2BridgeEncoder {
             revert Errors.ProtectedCctpDomain();
         }
 
-        uint32 oldDomain = $._evmToCctpId[evmChainId];
+        uint32 oldDomain = _evmToCctpId[evmChainId];
         if (oldDomain != 0) {
-            delete $._cctpToEvmId[oldDomain];
+            delete _cctpToEvmId[oldDomain];
         }
 
-        uint256 oldEvmChainId = $._cctpToEvmId[cctpDomain];
+        uint256 oldEvmChainId = _cctpToEvmId[cctpDomain];
         if (oldEvmChainId != 0) {
-            delete $._evmToCctpId[oldEvmChainId];
+            delete _evmToCctpId[oldEvmChainId];
         }
 
-        $._evmToCctpId[evmChainId] = cctpDomain;
-        $._cctpToEvmId[cctpDomain] = evmChainId;
+        _evmToCctpId[evmChainId] = cctpDomain;
+        _cctpToEvmId[cctpDomain] = evmChainId;
         emit CctpDomainRegistered(evmChainId, cctpDomain);
     }
 }
