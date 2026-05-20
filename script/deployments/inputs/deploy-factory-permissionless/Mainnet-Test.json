@@ -1,0 +1,12 @@
+{
+  "registry": "0xe336814080e47Ef6a350BE6c76EF7a54330b9cAA",
+  "accessManager": "0x94EDcE340D49ce11Aef1620B63c095e121893bAF",
+  "proxyOwner": "0x94EDcE340D49ce11Aef1620B63c095e121893bAF",
+  "permissionlessDefaults": {
+    "provider": "0xb7444CCf1236b5df1B7820a551268E9ee420cEf4",
+    "maxPositionIncreaseLossBps": 100,
+    "maxPositionDecreaseLossBps": 1000,
+    "maxSwapLossBps": 200,
+    "swapFeeRate": 500000000000000
+  }
+}

@@ -11,6 +11,7 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 import {Constants} from "../utils/Constants.sol";
 import {FlashLoanModule} from "src/flash-loans/FlashLoanModule.sol";
 import {IRCodeReader} from "../utils/IRCodeReader.sol";
+import {IModuleFactory} from "src/interfaces/IModuleFactory.sol";
 import {ModuleFactory} from "../../src/factory/ModuleFactory.sol";
 import {MakinaLiteRegistry} from "../../src/registry/MakinaLiteRegistry.sol";
 import {MockMorpho} from "../mocks/MockMorpho.sol";
@@ -51,8 +52,19 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
 
         safe = new MockSafe();
 
-        MakinaLiteInfra memory makinaLiteInfra =
-            deployMakinaLiteInfra(address(accessManager), weirollVM, FlashLoanProviders({morpho: address(morpho)}));
+        MakinaLiteInfra memory makinaLiteInfra = deployMakinaLiteInfra(
+            address(accessManager),
+            weirollVM,
+            FlashLoanProviders({morpho: address(morpho)}),
+            IModuleFactory.ModuleFactoryInitParams({
+                initialAuthority: address(accessManager),
+                initialPermissionlessProvider: dao,
+                initialPermissionlessMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
+                initialPermissionlessMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                initialPermissionlessMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                initialPermissionlessSwapFeeRate: DEFAULT_PERMISSIONLESS_SWAP_FEE_RATE
+            })
+        );
         registry = makinaLiteInfra.registry;
         moduleFactory = makinaLiteInfra.moduleFactory;
         makinaLiteModuleImplem = makinaLiteInfra.makinaLiteModuleImplem;

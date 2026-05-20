@@ -2,6 +2,13 @@
   "accessManager": "0x0000000000000000000000000000000000000000",
   "weirollVM": "0x0000000000000000000000000000000000000000",
   "feeCollector": "0x0000000000000000000000000000000000000000",
+  "permissionlessDefaults": {
+    "provider": "0x0000000000000000000000000000000000000000",
+    "maxPositionIncreaseLossBps": 100,
+    "maxPositionDecreaseLossBps": 1000,
+    "maxSwapLossBps": 200,
+    "swapFeeRate": 500000000000000
+  },
   "flashLoanProviders": {
     "morpho": "0x0000000000000000000000000000000000000000"
   },

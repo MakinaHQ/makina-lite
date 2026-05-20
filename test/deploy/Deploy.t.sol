@@ -11,6 +11,7 @@ import {AcrossV4BridgeEncoder} from "src/bridge-encoders/AcrossV4BridgeEncoder.s
 import {CctpV2BridgeEncoder} from "src/bridge-encoders/CctpV2BridgeEncoder.sol";
 import {LayerZeroV2BridgeEncoder} from "src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
 import {MakinaLiteRegistry} from "src/registry/MakinaLiteRegistry.sol";
+import {ModuleFactory} from "src/factory/ModuleFactory.sol";
 
 import {DeployMakinaLite} from "script/deployments/DeployMakinaLite.s.sol";
 import {SetupMakinaLiteAM} from "script/deployments/SetupMakinaLiteAM.s.sol";
@@ -50,6 +51,10 @@ contract Deploy_Scripts_Test is Base_Test {
         address morpho = vm.parseJsonAddress(deployMakinaLite.inputJson(), ".flashLoanProviders.morpho");
         assertTrue(morpho != address(0));
 
+        address permissionlessProvider =
+            vm.parseJsonAddress(deployMakinaLite.inputJson(), ".permissionlessDefaults.provider");
+        assertTrue(permissionlessProvider != address(0));
+
         assertTrue(vm.keyExistsJson(deployMakinaLite.inputJson(), ".bridgesTargets[0]"));
     }
 
@@ -77,6 +82,28 @@ contract Deploy_Scripts_Test is Base_Test {
         assertEq(infra.registry.moduleImplementation(), infra.makinaLiteModuleImplem);
         assertEq(infra.registry.feeCollector(), expectedFeeCollector);
         assertEq(infra.registry.flashLoanModule(), address(infra.flashLoanModule));
+
+        // Check that ModuleFactory permissionless defaults are seeded
+        assertEq(
+            infra.moduleFactory.permissionlessProvider(),
+            vm.parseJsonAddress(inputJson, ".permissionlessDefaults.provider")
+        );
+        assertEq(
+            infra.moduleFactory.permissionlessMaxPositionIncreaseLossBps(),
+            vm.parseJsonUint(inputJson, ".permissionlessDefaults.maxPositionIncreaseLossBps")
+        );
+        assertEq(
+            infra.moduleFactory.permissionlessMaxPositionDecreaseLossBps(),
+            vm.parseJsonUint(inputJson, ".permissionlessDefaults.maxPositionDecreaseLossBps")
+        );
+        assertEq(
+            infra.moduleFactory.permissionlessMaxSwapLossBps(),
+            vm.parseJsonUint(inputJson, ".permissionlessDefaults.maxSwapLossBps")
+        );
+        assertEq(
+            infra.moduleFactory.permissionlessSwapFeeRate(),
+            vm.parseJsonUint(inputJson, ".permissionlessDefaults.swapFeeRate")
+        );
 
         // Check that MakinaLiteRegistry and ModuleFactory are authed by the provided access manager
         assertEq(infra.registry.authority(), expectedAccessManager);
@@ -155,6 +182,22 @@ contract Deploy_Scripts_Test is Base_Test {
             assertEq(
                 IAccessManager(accessManager)
                     .getTargetFunctionRole(address(infra.registry), registrySetterSelectors[i]),
+                Roles.INFRA_CONFIG_ROLE
+            );
+        }
+
+        // ModuleFactory permissionless defaults setters are guarded by INFRA_CONFIG_ROLE
+        bytes4[5] memory factoryPermissionlessSetterSelectors = [
+            ModuleFactory.setPermissionlessProvider.selector,
+            ModuleFactory.setPermissionlessMaxPositionIncreaseLossBps.selector,
+            ModuleFactory.setPermissionlessMaxPositionDecreaseLossBps.selector,
+            ModuleFactory.setPermissionlessMaxSwapLossBps.selector,
+            ModuleFactory.setPermissionlessSwapFeeRate.selector
+        ];
+        for (uint256 i; i < factoryPermissionlessSetterSelectors.length; ++i) {
+            assertEq(
+                IAccessManager(accessManager)
+                    .getTargetFunctionRole(address(infra.moduleFactory), factoryPermissionlessSetterSelectors[i]),
                 Roles.INFRA_CONFIG_ROLE
             );
         }

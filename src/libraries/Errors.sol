@@ -31,6 +31,7 @@ library Errors {
     error MinOutputAmountExceedsInputAmount();
     error MismatchedLengths();
     error NegativeTokenPrice(address priceFeed);
+    error NotASafe();
     error NotFlashLoanModule();
     error NotGuardian();
     error NotMorpho();

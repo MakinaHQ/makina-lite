@@ -1,0 +1,12 @@
+{
+  "registry": "0x0000000000000000000000000000000000000000",
+  "accessManager": "0x0000000000000000000000000000000000000000",
+  "proxyOwner": "0x0000000000000000000000000000000000000000",
+  "permissionlessDefaults": {
+    "provider": "0x0000000000000000000000000000000000000000",
+    "maxPositionIncreaseLossBps": 100,
+    "maxPositionDecreaseLossBps": 1000,
+    "maxSwapLossBps": 200,
+    "swapFeeRate": 500000000000000
+  }
+}

@@ -9,6 +9,7 @@ import {AcrossV4BridgeEncoder} from "../../src/bridge-encoders/AcrossV4BridgeEnc
 import {CctpV2BridgeEncoder} from "../../src/bridge-encoders/CctpV2BridgeEncoder.sol";
 import {IntegrationIds} from "../utils/IntegrationIds.sol";
 import {FlashLoanModule} from "../../src/flash-loans/FlashLoanModule.sol";
+import {IModuleFactory} from "../../src/interfaces/IModuleFactory.sol";
 import {LayerZeroV2BridgeEncoder} from "../../src/bridge-encoders/LayerZeroV2BridgeEncoder.sol";
 import {ModuleFactory} from "../../src/factory/ModuleFactory.sol";
 import {MakinaLiteModule} from "../../src/MakinaLiteModule.sol";
@@ -29,12 +30,14 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         address morpho;
     }
 
-    function deployMakinaLiteInfra(address _accessManager, address _weirollVM, FlashLoanProviders memory flProviders)
-        internal
-        returns (MakinaLiteInfra memory deployment)
-    {
+    function deployMakinaLiteInfra(
+        address _accessManager,
+        address _weirollVM,
+        FlashLoanProviders memory flProviders,
+        IModuleFactory.ModuleFactoryInitParams memory factoryInitParams
+    ) internal returns (MakinaLiteInfra memory deployment) {
         deployment.registry = _deployMakinaLiteRegistry(_accessManager, _accessManager);
-        deployment.moduleFactory = _deployModuleFactory(_accessManager, _accessManager, address(deployment.registry));
+        deployment.moduleFactory = _deployModuleFactory(_accessManager, address(deployment.registry), factoryInitParams);
         deployment.makinaLiteModuleImplem = _deployMakinaLiteModuleImplem(address(deployment.registry), _weirollVM);
         deployment.flashLoanModule = _deployFlashLoanModule(address(deployment.moduleFactory), flProviders);
     }
@@ -73,6 +76,18 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         // ModuleFactory setters
         bytes4[] memory factorySetterSelectors = new bytes4[](1);
         factorySetterSelectors[0] = ModuleFactory.createModule.selector;
+
+        // ModuleFactory permissionless defaults setters
+        bytes4[] memory factoryPermissionlessSetterSelectors = new bytes4[](5);
+        factoryPermissionlessSetterSelectors[0] = ModuleFactory.setPermissionlessProvider.selector;
+        factoryPermissionlessSetterSelectors[1] = ModuleFactory.setPermissionlessMaxPositionIncreaseLossBps.selector;
+        factoryPermissionlessSetterSelectors[2] = ModuleFactory.setPermissionlessMaxPositionDecreaseLossBps.selector;
+        factoryPermissionlessSetterSelectors[3] = ModuleFactory.setPermissionlessMaxSwapLossBps.selector;
+        factoryPermissionlessSetterSelectors[4] = ModuleFactory.setPermissionlessSwapFeeRate.selector;
+        IAccessManager(accessManager)
+            .setTargetFunctionRole(
+                address(deployment.moduleFactory), factoryPermissionlessSetterSelectors, Roles.INFRA_CONFIG_ROLE
+            );
     }
 
     function _deployMakinaLiteRegistry(address _proxyOwner, address _accessManager)
@@ -91,16 +106,17 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         );
     }
 
-    function _deployModuleFactory(address _proxyOwner, address _accessManager, address _registry)
-        internal
-        returns (ModuleFactory moduleFactory)
-    {
+    function _deployModuleFactory(
+        address _proxyOwner,
+        address _registry,
+        IModuleFactory.ModuleFactoryInitParams memory factoryInitParams
+    ) internal returns (ModuleFactory moduleFactory) {
         address implem = _deployCode(abi.encodePacked(type(ModuleFactory).creationCode, abi.encode(_registry)), 0);
         return ModuleFactory(
             _deployCode(
                 abi.encodePacked(
                     type(TransparentUpgradeableProxy).creationCode,
-                    abi.encode(implem, _proxyOwner, abi.encodeCall(ModuleFactory.initialize, (_accessManager)))
+                    abi.encode(implem, _proxyOwner, abi.encodeCall(ModuleFactory.initialize, (factoryInitParams)))
                 ),
                 MODULE_FACTORY_SALT_DOMAIN
             )

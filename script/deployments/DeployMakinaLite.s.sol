@@ -6,6 +6,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 
 import {CreateXUtils} from "./utils/CreateXUtils.sol";
 
+import {IModuleFactory} from "../../src/interfaces/IModuleFactory.sol";
 import {Base} from "../../test/base/Base.sol";
 
 contract DeployMakinaLite is Base, Script, CreateXUtils {
@@ -59,7 +60,22 @@ contract DeployMakinaLite is Base, Script, CreateXUtils {
         FlashLoanProviders memory flProviders =
             FlashLoanProviders({morpho: vm.parseJsonAddress(inputJson, ".flashLoanProviders.morpho")});
 
-        _infra = deployMakinaLiteInfra(accessManager, weirollVM, flProviders);
+        IModuleFactory.ModuleFactoryInitParams memory factoryInitParams = IModuleFactory.ModuleFactoryInitParams({
+            initialAuthority: accessManager,
+            initialPermissionlessProvider: vm.parseJsonAddress(inputJson, ".permissionlessDefaults.provider"),
+            initialPermissionlessMaxPositionIncreaseLossBps: vm.parseJsonUint(
+                inputJson, ".permissionlessDefaults.maxPositionIncreaseLossBps"
+            ),
+            initialPermissionlessMaxPositionDecreaseLossBps: vm.parseJsonUint(
+                inputJson, ".permissionlessDefaults.maxPositionDecreaseLossBps"
+            ),
+            initialPermissionlessMaxSwapLossBps: vm.parseJsonUint(
+                inputJson, ".permissionlessDefaults.maxSwapLossBps"
+            ),
+            initialPermissionlessSwapFeeRate: vm.parseJsonUint(inputJson, ".permissionlessDefaults.swapFeeRate")
+        });
+
+        _infra = deployMakinaLiteInfra(accessManager, weirollVM, flProviders, factoryInitParams);
 
         _deployBridgeEncoders(accessManager);
     }

@@ -12,6 +12,7 @@ abstract contract Constants {
     uint256 internal constant DEFAULT_MAX_POS_DECREASE_LOSS_BPS = 1000;
     uint256 internal constant DEFAULT_MAX_SWAP_LOSS_BPS = 200;
     uint256 internal constant DEFAULT_SWAP_FEE_RATE = 1e15; // 0.1%
+    uint256 internal constant DEFAULT_PERMISSIONLESS_SWAP_FEE_RATE = 5e14; // 5 bps
     uint256 internal constant DEFAULT_MAX_BRIDGE_LOSS_BPS = 300;
 
     uint256 internal constant VAULT_POS_ID = 3;

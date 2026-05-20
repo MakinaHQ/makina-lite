@@ -11,6 +11,11 @@ contract MockSafe is ISafe {
 
     bool public revertOnReceive;
 
+    /// @dev Lets ModuleFactory._isSafe() recognise this mock as a Safe.
+    function getThreshold() external pure returns (uint256) {
+        return 1;
+    }
+
     receive() external payable {
         if (revertOnReceive) {
             revert();
