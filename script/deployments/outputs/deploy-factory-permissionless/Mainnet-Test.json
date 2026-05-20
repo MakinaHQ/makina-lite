@@ -1,0 +1,14 @@
+{
+  "networks": {
+    "1": {
+      "name": "Ethereum",
+      "ModuleFactory": "0x0f02E89f060e54cCF0Caeb2c698d0Fd5D00bc694",
+      "ModuleFactoryImplem": "0x8C1aBB5Ec3863B24f90e040d719F56811B2946aE"
+    },
+    "8453": {
+      "name": "Base",
+      "ModuleFactory": "0x0f02E89f060e54cCF0Caeb2c698d0Fd5D00bc694",
+      "ModuleFactoryImplem": "0x8C1aBB5Ec3863B24f90e040d719F56811B2946aE"
+    }
+  }
+}
