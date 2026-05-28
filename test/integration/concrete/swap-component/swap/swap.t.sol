@@ -266,6 +266,37 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         makinaLiteModule.swap(order);
     }
 
+    function test_RevertGiven_OngoingCooldown_WhileInLockdownMode() public {
+        uint256 inputAmount = 1e18;
+        deal(address(tokenA), address(safe), 3 * inputAmount, true);
+
+        ISwapComponent.SwapOrder memory order = ISwapComponent.SwapOrder({
+            swapperId: TEST_SWAPPER_ID,
+            data: abi.encodeCall(MockDex.swap, (address(tokenA), address(tokenB), inputAmount)),
+            inputToken: address(tokenA),
+            outputToken: address(tokenB),
+            inputAmount: inputAmount,
+            minOutputAmount: 0
+        });
+
+        // execute a swap while not in lockdown mode
+        vm.prank(operator);
+        makinaLiteModule.swap(order);
+
+        // set lockdown mode
+        vm.prank(address(safe));
+        makinaLiteModule.setLockdownMode(true);
+
+        // execute swap to trigger cooldown
+        vm.prank(operator);
+        makinaLiteModule.swap(order);
+
+        // try executing again while cooldown is ongoing
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        vm.prank(operator);
+        makinaLiteModule.swap(order);
+    }
+
     function test_RevertGiven_MaxValueLossExceeded_WhileInLockDownMode() public whileInLockdownMode {
         dex.setQuote(address(tokenA), address(tokenB), 10_000 - DEFAULT_MAX_SWAP_LOSS_BPS - 1, PRICE_B_A * 10_000);
 

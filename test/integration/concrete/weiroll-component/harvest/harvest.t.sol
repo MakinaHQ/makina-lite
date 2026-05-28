@@ -299,6 +299,37 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         makinaLiteModule.harvest(instruction, swapOrders);
     }
 
+    function test_RevertWhen_MoreThanOneSwap_WhileInLockDownMode() public whileInLockdownMode {
+        uint256 harvestAmount = 1e18;
+        deal(address(tokenA), address(safe), harvestAmount, true);
+
+        uint256 previewSwap = dex.previewSwap(address(tokenA), address(tokenB), harvestAmount);
+
+        IWeirollComponent.Instruction memory instruction =
+            _buildMockRewardTokenHarvestInstruction(address(safe), address(tokenA), harvestAmount);
+        ISwapComponent.SwapOrder[] memory swapOrders = new ISwapComponent.SwapOrder[](2);
+        swapOrders[0] = ISwapComponent.SwapOrder({
+            swapperId: TEST_SWAPPER_ID,
+            data: abi.encodeCall(MockDex.swap, (address(tokenA), address(tokenB), harvestAmount)),
+            inputToken: address(tokenA),
+            outputToken: address(tokenB),
+            inputAmount: harvestAmount,
+            minOutputAmount: previewSwap
+        });
+        swapOrders[1] = ISwapComponent.SwapOrder({
+            swapperId: TEST_SWAPPER_ID,
+            data: abi.encodeCall(MockDex.swap, (address(tokenB), address(tokenA), previewSwap / 2)),
+            inputToken: address(tokenB),
+            outputToken: address(tokenA),
+            inputAmount: previewSwap / 2,
+            minOutputAmount: 0
+        });
+
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        vm.prank(operator);
+        makinaLiteModule.harvest(instruction, swapOrders);
+    }
+
     function test_Harvest_NoSwap_WhileInLockDownMode() public whileInLockdownMode {
         _test_Harvest_NoSwap();
     }

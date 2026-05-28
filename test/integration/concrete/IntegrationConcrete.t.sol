@@ -61,7 +61,9 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
                         initialAllowedInstrRoot: bytes32(0),
                         initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
                         initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                        initialInstrCooldownDuration: DEFAULT_INSTR_COOLDOWN_DURATION,
                         initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                        initialSwapCooldownDuration: DEFAULT_SWAP_COOLDOWN_DURATION,
                         initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
                     TEST_DEPLOYMENT_SALT,

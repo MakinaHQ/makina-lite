@@ -10,6 +10,7 @@ interface ISwapComponent {
         uint256 inputAmount,
         uint256 outputAmount
     );
+    event SwapCooldownDurationChanged(uint256 oldSwapCooldownDuration, uint256 newSwapCooldownDuration);
     event SwapFeeRateChanged(uint256 oldSwapFeeRate, uint256 newSwapFeeRate);
     event SwapperTargetsSet(uint16 indexed swapperId, address approvalTarget, address executionTarget);
 
@@ -37,6 +38,9 @@ interface ISwapComponent {
     /// @notice Max allowed value loss (in basis points) for token swaps, while in lockdown mode.
     function maxSwapLossBps() external view returns (uint256);
 
+    /// @notice Cooldown duration for token swaps in seconds.
+    function swapCooldownDuration() external view returns (uint256);
+
     /// @notice Swap fee rate, 1e18 = 100%.
     function swapFeeRate() external view returns (uint256);
 
@@ -63,4 +67,8 @@ interface ISwapComponent {
     /// @param approvalTarget The approval target.
     /// @param executionTarget The execution target.
     function setSwapperTargets(uint16 swapperId, address approvalTarget, address executionTarget) external;
+
+    /// @notice Sets the cooldown duration for token swaps.
+    /// @param newSwapCooldownDuration The new cooldown duration in seconds.
+    function setSwapCooldownDuration(uint256 newSwapCooldownDuration) external;
 }

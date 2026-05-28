@@ -65,7 +65,9 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
                         initialAllowedInstrRoot: initialAllowedInstrRoot,
                         initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
                         initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                        initialInstrCooldownDuration: DEFAULT_INSTR_COOLDOWN_DURATION,
                         initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                        initialSwapCooldownDuration: DEFAULT_SWAP_COOLDOWN_DURATION,
                         initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
                     salt,

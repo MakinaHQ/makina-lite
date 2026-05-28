@@ -31,12 +31,28 @@ contract Getters_Setters_SwapComponent_Unit_Concrete_Test is SwapComponent_Unit_
     function test_SetMaxSwapLossBps() public {
         uint256 newMaxSwapLossBps = 300;
 
-        vm.expectEmit(true, true, false, false, address(swapComponent));
+        vm.expectEmit(false, false, false, true, address(swapComponent));
         emit ISwapComponent.MaxSwapLossBpsChanged(DEFAULT_MAX_SWAP_LOSS_BPS, newMaxSwapLossBps);
         vm.prank(address(safe));
         swapComponent.setMaxSwapLossBps(newMaxSwapLossBps);
 
         assertEq(swapComponent.maxSwapLossBps(), newMaxSwapLossBps);
+    }
+
+    function test_SetSwapCooldownDuration_RevertWhen_CallerNotSafe() public {
+        vm.expectRevert(Errors.UnauthorizedCaller.selector);
+        swapComponent.setSwapCooldownDuration(0);
+    }
+
+    function test_SetSwapCooldownDuration() public {
+        uint256 newSwapCooldownDuration = 30 seconds;
+
+        vm.expectEmit(false, false, false, true, address(swapComponent));
+        emit ISwapComponent.SwapCooldownDurationChanged(DEFAULT_SWAP_COOLDOWN_DURATION, newSwapCooldownDuration);
+        vm.prank(address(safe));
+        swapComponent.setSwapCooldownDuration(newSwapCooldownDuration);
+
+        assertEq(swapComponent.swapCooldownDuration(), newSwapCooldownDuration);
     }
 
     function test_SetSwapFeeRate_RevertWhen_CallerNotProvider() public {
@@ -53,7 +69,7 @@ contract Getters_Setters_SwapComponent_Unit_Concrete_Test is SwapComponent_Unit_
     function test_SetSwapFeeRate() public {
         uint256 newSwapFeeRate = 5e15; // 0.5%
 
-        vm.expectEmit(true, true, false, false, address(swapComponent));
+        vm.expectEmit(false, false, false, true, address(swapComponent));
         emit ISwapComponent.SwapFeeRateChanged(DEFAULT_SWAP_FEE_RATE, newSwapFeeRate);
         vm.prank(dao);
         swapComponent.setSwapFeeRate(newSwapFeeRate);

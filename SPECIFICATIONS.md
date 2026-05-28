@@ -44,6 +44,10 @@ When lockdown mode is enabled, position management operations enforce value loss
 - For position increases: the position value gained must be within `maxPositionIncreaseLossBps` of the tokens spent.
 - For position decreases: the tokens received must be within `maxPositionDecreaseLossBps` of the position value lost.
 
+#### Instruction Cooldown
+
+When lockdown mode is enabled, management instructions are subject to a cooldown. After each successful management instruction, the module records a timestamp keyed by the tuple `(positionId, commands, direction)`, where `direction` reflects whether the operation increased or decreased the position value. Re-running the same management script on the same position in the same direction is rejected until the configured instruction cooldown duration has elapsed.
+
 #### Assumptions
 
 The protocol relies on specific assumptions on the instructions. Some are always required for correct behavior, while others are only relevant in lockdown mode but remain best practice regardless.
@@ -72,6 +76,10 @@ When lockdown mode is enabled, swap operations enforce a value loss limit (`maxS
 
 A configurable swap fee rate, set by the provider, is applied to every swap output. Fees are transferred to the fee collector address stored in the `MakinaLiteRegistry`. The fee rate is expressed as a fraction of `1e18` (i.e., `1e18` = 100%).
 
+#### Cooldown
+
+When lockdown mode is enabled, swaps are subject to a cooldown. The module records the timestamp of the last successful swap and rejects subsequent swaps until the configured swap cooldown duration has elapsed. The cooldown is global to the swap component and is not segmented by swapper, input token, or output token. It also applies to swaps performed as part of a `harvest` call, since all orders in a single call execute in the same block, a `harvest` carrying more than one swap order can only be executed while not in lockdown mode.
+
 ### Oracle Registry
 
 The `OracleRegistry` component prices tokens in a reference currency (e.g. USD) by aggregating price feeds that implement Chainlink's `AggregatorV2V3Interface`, using either a single feed or a two-feed path. For each feed, a staleness threshold is configured.
@@ -98,6 +106,7 @@ When lockdown mode is enabled, bridge transfers enforce:
 - **Recipient whitelisting**: The recipient on the destination chain must be whitelisted for that specific chain ID.
 - **Value loss limits**: The minimum output amount must be within `maxBridgeLossBps` of the input amount.
 - **Route/OFT registration checks**: Bridge-specific checks are enforced depending on the bridge protocol (e.g. route registration for Across V4, OFT registration for LayerZero V2).
+- **Cooldown**: Outgoing transfers via a given bridge are rejected until the configured bridge cooldown duration has elapsed since the previous outgoing transfer through that same bridge. Each bridge ID has an independent cooldown clock.
 
 #### Supported Bridge Protocols
 

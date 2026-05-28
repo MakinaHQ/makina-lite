@@ -55,11 +55,15 @@ contract MakinaLiteModule is
         _checkBps(params.initialMaxPositionDecreaseLossBps);
         _setMaxPositionDecreaseLossBps(params.initialMaxPositionDecreaseLossBps);
 
+        _setInstrCooldownDuration(params.initialInstrCooldownDuration);
+
         _checkBps(params.initialMaxSwapLossBps);
         _setMaxSwapLossBps(params.initialMaxSwapLossBps);
 
         _checkFeeRate(params.initialSwapFeeRate);
         _setSwapFeeRate(params.initialSwapFeeRate);
+
+        _setSwapCooldownDuration(params.initialSwapCooldownDuration);
     }
 
     receive() external payable {}
@@ -193,6 +197,11 @@ contract MakinaLiteModule is
         _setMaxPositionDecreaseLossBps(newMaxPositionDecreaseLossBps);
     }
 
+    /// @inheritdoc IWeirollComponent
+    function setInstrCooldownDuration(uint256 newInstrCooldownDuration) external override onlySafe {
+        _setInstrCooldownDuration(newInstrCooldownDuration);
+    }
+
     /// @inheritdoc ISwapComponent
     function swap(ISwapComponent.SwapOrder calldata order) external override nonReentrant whenOperational onlyOperator {
         _swapForSafe(order);
@@ -202,6 +211,11 @@ contract MakinaLiteModule is
     function setMaxSwapLossBps(uint256 newMaxSwapLossBps) external override onlySafe {
         _checkBps(newMaxSwapLossBps);
         _setMaxSwapLossBps(newMaxSwapLossBps);
+    }
+
+    /// @inheritdoc ISwapComponent
+    function setSwapCooldownDuration(uint256 newSwapCooldownDuration) external override onlySafe {
+        _setSwapCooldownDuration(newSwapCooldownDuration);
     }
 
     /// @inheritdoc ISwapComponent
@@ -246,6 +260,11 @@ contract MakinaLiteModule is
     /// @inheritdoc IBridgeComponent
     function removeRecipient(uint256 foreignChainId, address recipient) external override onlySafe {
         _removeRecipient(foreignChainId, recipient);
+    }
+
+    /// @inheritdoc IBridgeComponent
+    function setBridgeCooldownDuration(uint256 newBridgeCooldownDuration) external override onlySafe {
+        _setBridgeCooldownDuration(newBridgeCooldownDuration);
     }
 
     /// @inheritdoc IMakinaLiteModule

@@ -6,6 +6,7 @@ import {ISwapComponent} from "./ISwapComponent.sol";
 interface IWeirollComponent {
     event AllowedInstrRootChanged(bytes32 indexed oldRoot, bytes32 indexed newRoot);
     event AccountingCurrencyChanged(address indexed oldAccountingCurrency, address indexed newAccountingCurrency);
+    event InstrCooldownDurationChanged(uint256 oldInstrCooldownDuration, uint256 newInstrCooldownDuration);
     event MaxPositionIncreaseLossBpsChanged(
         uint256 oldMaxPositionIncreaseLossBps, uint256 newMaxPositionIncreaseLossBps
     );
@@ -63,6 +64,9 @@ interface IWeirollComponent {
 
     /// @notice Max allowed value loss (in basis points) when decreasing a position, while in lockdown mode.
     function maxPositionDecreaseLossBps() external view returns (uint256);
+
+    /// @notice Cooldown duration for instruction executions in seconds.
+    function instrCooldownDuration() external view returns (uint256);
 
     /// @notice Prices a position.
     /// @dev If the position value goes to zero, it is closed.
@@ -146,4 +150,8 @@ interface IWeirollComponent {
     /// @notice Sets the max allowed value loss for position decreases.
     /// @param newMaxPositionDecreaseLossBps The new max value loss in basis points.
     function setMaxPositionDecreaseLossBps(uint256 newMaxPositionDecreaseLossBps) external;
+
+    /// @notice Sets the cooldown duration for instruction executions.
+    /// @param newInstrCooldownDuration The new cooldown duration in seconds.
+    function setInstrCooldownDuration(uint256 newInstrCooldownDuration) external;
 }

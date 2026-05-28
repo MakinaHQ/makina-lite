@@ -41,6 +41,22 @@ contract Getters_Setters_BridgeComponent_Unit_Concrete_Test is BridgeComponent_U
         assertEq(bridgeComponent.getMaxBridgeLossBps(DUMMY_BRIDGE_ID), newMaxBridgeLossBps);
     }
 
+    function test_SetBridgeCooldownDuration_RevertWhen_CallerNotSafe() public {
+        vm.expectRevert(Errors.UnauthorizedCaller.selector);
+        bridgeComponent.setBridgeCooldownDuration(0);
+    }
+
+    function test_SetBridgeCooldownDuration() public {
+        uint256 newBridgeCooldownDuration = 30 seconds;
+
+        vm.expectEmit(false, false, false, true, address(bridgeComponent));
+        emit IBridgeComponent.BridgeCooldownDurationChanged(0, newBridgeCooldownDuration);
+        vm.prank(address(safe));
+        bridgeComponent.setBridgeCooldownDuration(newBridgeCooldownDuration);
+
+        assertEq(bridgeComponent.bridgeCooldownDuration(), newBridgeCooldownDuration);
+    }
+
     function test_AddRecipient_RevertWhen_CallerNotSafe() public {
         vm.expectRevert(Errors.UnauthorizedCaller.selector);
         bridgeComponent.addRecipient(0, address(0));

@@ -492,6 +492,45 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
     }
 
+    function test_RevertWhen_NoAccountingInstructionProvided_WhileInLockDownMode() public whileInLockdownMode {
+        IWeirollComponent.Instruction memory mgmtInstruction =
+            _build4626DepositInstruction(address(safe), VAULT_POS_ID, address(vault), 0);
+
+        IWeirollComponent.Instruction memory acctInstruction;
+
+        vm.expectRevert(Errors.AccountingMandatory.selector);
+        vm.prank(operator);
+        makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
+    }
+
+    function test_RevertGiven_OngoingCooldown_WhileInLockdownMode() public {
+        uint256 inputAmount = 3e18;
+
+        deal(address(tokenB), address(safe), 3 * inputAmount, true);
+
+        IWeirollComponent.Instruction memory mgmtInstruction =
+            _buildMockSupplyModuleSupplyInstruction(SUPPLY_POS_ID, address(supplyModule), inputAmount);
+        IWeirollComponent.Instruction memory acctInstruction =
+            _buildMockSupplyModuleAccountingInstruction(address(safe), SUPPLY_POS_ID, address(supplyModule));
+
+        // execution instruction while not in lockdown mode
+        vm.prank(operator);
+        makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
+
+        // set lockdown mode
+        vm.prank(address(safe));
+        makinaLiteModule.setLockdownMode(true);
+
+        vm.startPrank(operator);
+
+        // execute instruction to trigger cooldown
+        makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
+
+        // try executing again while cooldown is ongoing
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
+    }
+
     // base tokens are spent but non-debt position decreases
     function test_RevertGiven_InvalidPositionChangeDirection_NonDebt_WhileInLockdownMode() public whileInLockdownMode {
         uint256 inputAmount = 3e18;
@@ -646,17 +685,6 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         // check that execution succeeds when value loss reaches the position increase loss threshold,
         // intended to be stricter than the position decrease loss threshold
         borrowModule.setRateBps(10_000 - DEFAULT_MAX_POS_INCREASE_LOSS_BPS - 1);
-        vm.prank(operator);
-        makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
-    }
-
-    function test_RevertWhen_NoAccountingInstructionProvided_WhileInLockDownMode() public whileInLockdownMode {
-        IWeirollComponent.Instruction memory mgmtInstruction =
-            _build4626DepositInstruction(address(safe), VAULT_POS_ID, address(vault), 0);
-
-        IWeirollComponent.Instruction memory acctInstruction;
-
-        vm.expectRevert(Errors.AccountingMandatory.selector);
         vm.prank(operator);
         makinaLiteModule.managePosition(mgmtInstruction, acctInstruction);
     }
@@ -850,6 +878,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(value, expectedValue);
         assertEq(uint256(change), value);
 
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
+
         // increase position
         expectedShares += vault.previewDeposit(inputAmount);
         expectedValue += inputAmount * priceTokenBInAccountingCurrency;
@@ -878,6 +908,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(vault.balanceOf(address(safe)), expectedShares);
         assertEq(value, expectedValue);
         assertEq(change, -1 * int256(inputAmount * priceTokenBInAccountingCurrency));
+
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
 
         // close position
         expectedShares = 0;
@@ -917,6 +949,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(value, expectedValue);
         assertEq(uint256(change), value);
 
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
+
         // increase position
         expectedValue += inputAmount * priceTokenBInAccountingCurrency;
         vm.expectEmit(true, true, true, true, address(makinaLiteModule));
@@ -942,6 +976,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(supplyModule.collateralOf(address(safe)), inputAmount);
         assertEq(value, expectedValue);
         assertEq(change, -1 * int256(inputAmount * priceTokenBInAccountingCurrency));
+
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
 
         // close position
         expectedValue = 0;
@@ -980,6 +1016,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(value, expectedValue);
         assertEq(uint256(change), value);
 
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
+
         // increase position
         expectedValue += inputAmount * priceTokenBInAccountingCurrency;
         vm.expectEmit(true, true, true, true, address(makinaLiteModule));
@@ -1005,6 +1043,8 @@ contract ManagePosition_Integration_Concrete_Test is WeirollComponent_Integratio
         assertEq(borrowModule.debtOf(address(safe)), inputAmount);
         assertEq(value, expectedValue);
         assertEq(change, -1 * int256(inputAmount * priceTokenBInAccountingCurrency));
+
+        skip(DEFAULT_INSTR_COOLDOWN_DURATION);
 
         // close position
         expectedValue = 0;

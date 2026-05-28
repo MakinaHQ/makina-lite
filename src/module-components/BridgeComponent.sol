@@ -19,6 +19,10 @@ abstract contract BridgeComponent is IBridgeComponent {
 
     mapping(uint16 bridgeId => uint256 maxBridgeLossBps) private _maxBridgeLossBps;
     mapping(uint256 foreignChainId => mapping(address recipient => bool isWhitelisted)) private _isWhitelistedRecipient;
+    mapping(uint16 bridgeId => uint256 timestamp) private _lastBridgeOutTimestamp;
+
+    /// @inheritdoc IBridgeComponent
+    uint256 public bridgeCooldownDuration;
 
     /// @inheritdoc IBridgeComponent
     function getMaxBridgeLossBps(uint16 bridgeId) external view returns (uint256) {
@@ -35,6 +39,8 @@ abstract contract BridgeComponent is IBridgeComponent {
     {
         uint256 maxLossBps = _maxBridgeLossBps[order.bridgeId];
         if (lockdownMode) {
+            _checkAndSetCooldown(order.bridgeId);
+
             if (!_isWhitelistedRecipient[order.destinationChainId][order.recipient]) {
                 revert Errors.RecipientNotWhitelisted();
             }
@@ -81,5 +87,23 @@ abstract contract BridgeComponent is IBridgeComponent {
         }
         _isWhitelistedRecipient[foreignChainId][recipient] = false;
         emit BridgeTransferRecipientRemoved(foreignChainId, recipient);
+    }
+
+    /// @dev Internal logic to set the cooldown duration for bridge transfers.
+    function _setBridgeCooldownDuration(uint256 newBridgeCooldownDuration) internal {
+        emit BridgeCooldownDurationChanged(bridgeCooldownDuration, newBridgeCooldownDuration);
+        bridgeCooldownDuration = newBridgeCooldownDuration;
+    }
+
+    /// @dev Checks cooldown for a given bridge and updates its last outgoing transfer timestamp.
+    function _checkAndSetCooldown(uint16 bridgeId) internal {
+        uint256 timestamp = block.timestamp;
+        if (
+            _lastBridgeOutTimestamp[bridgeId] != 0
+                && timestamp - _lastBridgeOutTimestamp[bridgeId] < bridgeCooldownDuration
+        ) {
+            revert Errors.OngoingCooldown();
+        }
+        _lastBridgeOutTimestamp[bridgeId] = timestamp;
     }
 }

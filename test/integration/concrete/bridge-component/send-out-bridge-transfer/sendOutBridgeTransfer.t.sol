@@ -101,6 +101,47 @@ contract SendOutBridgeTransfer_Integration_Concrete_Test is BridgeComponent_Inte
         makinaLiteModule.sendOutBridgeTransfer(order);
     }
 
+    function test_RevertGiven_OngoingCooldown_WhileInLockdownMode() public {
+        vm.prank(address(safe));
+        makinaLiteModule.addRecipient(L2_CHAIN_ID, address(safe));
+
+        uint256 inputAmount = 1e18;
+        uint256 minOutputAmount = (inputAmount * (10_000 - DEFAULT_MAX_BRIDGE_LOSS_BPS) / 10_000);
+
+        deal(address(tokenA), address(safe), 3 * inputAmount, true);
+
+        IBridgeComponent.BridgeOrder memory order = IBridgeComponent.BridgeOrder({
+            bridgeId: CCTP_V2_BRIDGE_ID,
+            destinationChainId: L2_CHAIN_ID,
+            recipient: address(safe),
+            inputToken: address(tokenA),
+            inputAmount: inputAmount,
+            minOutputAmount: minOutputAmount,
+            extraData: abi.encode(CCTP_V2_CONFIRMED_FINALITY_THRESHOLD)
+        });
+
+        // set a bridge cooldown duration
+        vm.prank(address(safe));
+        makinaLiteModule.setBridgeCooldownDuration(1 minutes);
+
+        // send one transfer while not in lockdown mode
+        vm.prank(operator);
+        makinaLiteModule.sendOutBridgeTransfer(order);
+
+        // set lockdown mode
+        vm.prank(address(safe));
+        makinaLiteModule.setLockdownMode(true);
+
+        vm.startPrank(operator);
+
+        // send a transfer to trigger cooldown
+        makinaLiteModule.sendOutBridgeTransfer(order);
+
+        // try sending another transfer while cooldown is ongoing
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        makinaLiteModule.sendOutBridgeTransfer(order);
+    }
+
     function test_RevertGiven_RecipientNotWhitelisted_WhileInLockdownMode() public whileInLockdownMode {
         IBridgeComponent.BridgeOrder memory order;
         order.bridgeId = CCTP_V2_BRIDGE_ID;

@@ -21,9 +21,12 @@ The Safe is the ultimate owner of the module and all managed assets. It has excl
 - Can set price feed staleness thresholds.
 - Can set the maximum allowed value loss for position increases.
 - Can set the maximum allowed value loss for position decreases.
+- Can set the cooldown duration for position management instructions.
 - Can set the maximum allowed value loss for token swaps.
+- Can set the cooldown duration for token swaps.
 - Can set swapper approval and execution targets.
 - Can set the maximum allowed value loss for bridge transfers.
+- Can set the cooldown duration for bridge transfers.
 - Can add and remove whitelisted bridge transfer recipients.
 - Can sweep ERC20 tokens held by the module back to the Safe.
 - Can sweep native tokens held by the module back to the Safe.
@@ -105,8 +108,8 @@ The following contracts use OpenZeppelin's `AccessManagedUpgradeable` with the `
 
 The module has three operational states that can restrict its functionality:
 
-| State             | Set by   | Effect                                                                                                                                                                             |
-| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Paused**        | Guardian | Blocks all operator actions.                                                                                                                                                       |
-| **Suspended**     | Provider | Blocks all operator actions.                                                                                                                                                       |
-| **Lockdown Mode** | Safe     | Enforces additional safety checks: position value loss limits, swap value loss limits, bridge value loss limits, bridge recipient whitelisting, and OFT/route registration checks. |
+| State             | Set by   | Effect                                                                                                                                           |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Paused**        | Guardian | Blocks all operator actions.                                                                                                                     |
+| **Suspended**     | Provider | Blocks all operator actions.                                                                                                                     |
+| **Lockdown Mode** | Safe     | Enforces additional safety checks: value loss limits, per-operation cooldowns, bridge recipient whitelisting, and OFT/route registration checks. |

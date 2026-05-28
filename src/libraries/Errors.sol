@@ -38,6 +38,7 @@ library Errors {
     error OftAlreadyRegistered();
     error OftMismatch();
     error OftNotRegistered();
+    error OngoingCooldown();
     error Paused();
     error ProtectedCctpDomain();
     error ProtectedChainId();

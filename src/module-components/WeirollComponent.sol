@@ -36,6 +36,8 @@ abstract contract WeirollComponent is IWeirollComponent {
     bytes32 private constant IS_MANAGING_FLASHLOAN_SLOT =
         0x8af85af09dfd26c2dc59ce2f32b0ca3422706a314bdc173e6610c5138eba2b00;
 
+    mapping(bytes32 executionHash => uint256 timestamp) private _lastLockdownExecTimestamps;
+
     /// @inheritdoc IWeirollComponent
     address public immutable weirollVm;
 
@@ -50,6 +52,9 @@ abstract contract WeirollComponent is IWeirollComponent {
 
     /// @inheritdoc IWeirollComponent
     uint256 public maxPositionDecreaseLossBps;
+
+    /// @inheritdoc IWeirollComponent
+    uint256 public instrCooldownDuration;
 
     constructor(address _weirollVm) {
         weirollVm = _weirollVm;
@@ -101,6 +106,9 @@ abstract contract WeirollComponent is IWeirollComponent {
                 uint256 affectedTokensValueAfter = _aggregateTokensValue(mgmtInstruction.affectedTokens, safe);
 
                 bool isPositionIncrease = change > 0;
+
+                _checkAndSetCooldown(keccak256(abi.encodePacked(posId, mgmtInstruction.commands, isPositionIncrease)));
+
                 uint256 absChange = isPositionIncrease ? uint256(change) : uint256(-change);
                 uint256 maxLossBps = isPositionIncrease ? maxPositionIncreaseLossBps : maxPositionDecreaseLossBps;
 
@@ -335,6 +343,12 @@ abstract contract WeirollComponent is IWeirollComponent {
         maxPositionDecreaseLossBps = newMaxPositionDecreaseLossBps;
     }
 
+    /// @dev Internal logic to set the cooldown duration for instruction executions.
+    function _setInstrCooldownDuration(uint256 newInstrCooldownDuration) internal {
+        emit InstrCooldownDurationChanged(instrCooldownDuration, newInstrCooldownDuration);
+        instrCooldownDuration = newInstrCooldownDuration;
+    }
+
     /// @dev Instructs the Safe to execute a set of commands via a delegatecall to the Weiroll VM.
     /// @param commands The commands to execute.
     /// @param state The state to pass to the VM.
@@ -350,6 +364,18 @@ abstract contract WeirollComponent is IWeirollComponent {
             );
         returnData = Address.verifyCallResult(success, returnData);
         return abi.decode(returnData, (bytes[]));
+    }
+
+    /// @dev Checks cooldown for a given execution and updates its last timestamp.
+    function _checkAndSetCooldown(bytes32 executionHash) internal {
+        uint256 timestamp = block.timestamp;
+        if (
+            _lastLockdownExecTimestamps[executionHash] != 0
+                && timestamp - _lastLockdownExecTimestamps[executionHash] < instrCooldownDuration
+        ) {
+            revert Errors.OngoingCooldown();
+        }
+        _lastLockdownExecTimestamps[executionHash] = timestamp;
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.

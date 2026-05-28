@@ -22,7 +22,9 @@ interface IMakinaLiteModule is
     /// @param initialAllowedInstrRoot The root of the Merkle tree containing the allowed instructions for the module.
     /// @param initialMaxPositionIncreaseLossBps The max allowed value loss (in basis points) for position increases, while in lockdown mode.
     /// @param initialMaxPositionDecreaseLossBps The max allowed value loss (in basis points) for position decreases, while in lockdown mode.
+    /// @param initialInstrCooldownDuration The cooldown duration for position management in seconds.
     /// @param initialMaxSwapLossBps The maximum allowed loss in basis points for swap operations, while in lockdown mode.
+    /// @param initialSwapCooldownDuration The cooldown duration for swap operations in seconds.
     /// @param initialSwapFeeRate The fee rate for swap operations, 1e18 = 100%.
     struct MakinaLiteModuleInitParams {
         address safe;
@@ -30,7 +32,9 @@ interface IMakinaLiteModule is
         bytes32 initialAllowedInstrRoot;
         uint256 initialMaxPositionIncreaseLossBps;
         uint256 initialMaxPositionDecreaseLossBps;
+        uint256 initialInstrCooldownDuration;
         uint256 initialMaxSwapLossBps;
+        uint256 initialSwapCooldownDuration;
         uint256 initialSwapFeeRate;
     }
 

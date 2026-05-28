@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 interface IBridgeComponent {
     event BridgeTransferRecipientAdded(uint256 indexed foreignChainId, address indexed recipient);
     event BridgeTransferRecipientRemoved(uint256 indexed foreignChainId, address indexed recipient);
+    event BridgeCooldownDurationChanged(uint256 oldBridgeCooldownDuration, uint256 newBridgeCooldownDuration);
     event MaxBridgeLossBpsChanged(
         uint16 indexed bridgeId, uint256 indexed oldMaxBridgeLossBps, uint256 indexed newMaxBridgeLossBps
     );
@@ -32,6 +33,9 @@ interface IBridgeComponent {
     /// @notice Foreign Chain ID => Recipient => Whitelisting status while in lockdown mode.
     function isWhitelistedRecipient(uint256 foreignChainId, address recipient) external view returns (bool);
 
+    /// @notice Cooldown duration for bridge transfers in seconds.
+    function bridgeCooldownDuration() external view returns (uint256);
+
     /// @notice Executes an outgoing bridge transfer.
     /// @param order The bridge transfer params.
     function sendOutBridgeTransfer(BridgeOrder calldata order) external;
@@ -50,4 +54,8 @@ interface IBridgeComponent {
     /// @param foreignChainId The foreign chain ID.
     /// @param recipient The address of the recipient.
     function removeRecipient(uint256 foreignChainId, address recipient) external;
+
+    /// @notice Sets the cooldown duration for bridge transfers.
+    /// @param newBridgeCooldownDuration The new cooldown duration in seconds.
+    function setBridgeCooldownDuration(uint256 newBridgeCooldownDuration) external;
 }
