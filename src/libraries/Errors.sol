@@ -16,6 +16,7 @@ library Errors {
     error InvalidDataHash();
     error InvalidDebtFlag();
     error InvalidDecimals();
+    error InvalidTarget();
     error InvalidFeedRoute();
     error InvalidFeeRate();
     error InvalidFlashLoanProvider();

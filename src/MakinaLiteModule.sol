@@ -230,6 +230,9 @@ contract MakinaLiteModule is
         override
         onlySafe
     {
+        if (executionTarget == safe || approvalTarget == safe) {
+            revert Errors.InvalidTarget();
+        }
         _setSwapperTargets(swapperId, approvalTarget, executionTarget);
     }
 

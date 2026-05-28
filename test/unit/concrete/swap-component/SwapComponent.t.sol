@@ -82,6 +82,16 @@ contract Getters_Setters_SwapComponent_Unit_Concrete_Test is SwapComponent_Unit_
         swapComponent.setSwapperTargets(0, address(0), address(0));
     }
 
+    function test_SetSwapperTargets_RevertWhen_InvalidTarget() public {
+        vm.expectRevert(Errors.InvalidTarget.selector);
+        vm.prank(address(safe));
+        swapComponent.setSwapperTargets(0, address(0), address(safe));
+
+        vm.expectRevert(Errors.InvalidTarget.selector);
+        vm.prank(address(safe));
+        swapComponent.setSwapperTargets(0, address(safe), address(0));
+    }
+
     function test_SetSwapperTargets() public {
         address newApprovalTarget = makeAddr("newApprovalTarget");
         address newExecutionTarget = makeAddr("newExecutionTarget");
