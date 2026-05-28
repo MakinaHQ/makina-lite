@@ -178,7 +178,7 @@ contract MakinaLiteModule is
     }
 
     /// @inheritdoc IWeirollComponent
-    function setAccountingCurrency(address newAccountingCurrency) external override onlySafe {
+    function setAccountingCurrency(address newAccountingCurrency) external override nonReentrant onlySafe {
         if (!isFeedRouteRegistered(newAccountingCurrency)) {
             revert Errors.PriceFeedRouteNotRegistered(newAccountingCurrency);
         }
