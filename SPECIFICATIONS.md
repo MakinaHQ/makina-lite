@@ -30,8 +30,8 @@ A set of instructions can be pre-approved and registered in a Merkle tree, whose
 
 Instructions can be of four different types:
 
-- **MANAGEMENT**: Modifies the size of a position. A `MANAGEMENT` instruction is always paired with an `ACCOUNTING` instruction to account for the changes it introduces. In lockdown mode, the accounting instruction is mandatory.
-- **ACCOUNTING**: Calculates the current value of a position using the affected tokens' balances and the oracle registry.
+- **MANAGEMENT**: Modifies the size of a position. May be associated with an `ACCOUNTING` instruction. In lockdown mode, an associated `ACCOUNTING` instruction is required.
+- **ACCOUNTING**: Calculates the asset amounts used to value a position. Applies to one or more `MANAGEMENT` instructions for the matching position ID.
 - **HARVEST**: Collects rewards earned by open positions from external protocols.
 - **FLASHLOAN_MANAGEMENT**: Modifies the size of a position in the context of a flash loan, as part of an outer `MANAGEMENT` instruction. A `FLASHLOAN_MANAGEMENT` instruction is always associated with a `MANAGEMENT` instruction and can only be executed in its scope.
 
