@@ -19,7 +19,7 @@ abstract contract BridgeComponent is IBridgeComponent {
 
     mapping(uint16 bridgeId => uint256 maxBridgeLossBps) private _maxBridgeLossBps;
     mapping(uint256 foreignChainId => mapping(address recipient => bool isWhitelisted)) private _isWhitelistedRecipient;
-    mapping(uint16 bridgeId => uint256 timestamp) private _lastBridgeOutTimestamp;
+    mapping(uint16 bridgeId => uint256 timestamp) private _lastGuardedBridgeOutTimestamp;
 
     /// @inheritdoc IBridgeComponent
     uint256 public bridgeCooldownDuration;
@@ -34,10 +34,10 @@ abstract contract BridgeComponent is IBridgeComponent {
         return _isWhitelistedRecipient[foreignChainId][recipient];
     }
 
-    function _sendOutBridgeTransfer(IBridgeComponent.BridgeOrder calldata order, address encoder, bool lockdownMode)
+    function _sendOutBridgeTransfer(IBridgeComponent.BridgeOrder calldata order, address encoder, bool guarded)
         internal
     {
-        if (lockdownMode) {
+        if (guarded) {
             _checkAndSetCooldown(order.bridgeId);
 
             if (!_isWhitelistedRecipient[order.destinationChainId][order.recipient]) {
@@ -101,11 +101,11 @@ abstract contract BridgeComponent is IBridgeComponent {
     function _checkAndSetCooldown(uint16 bridgeId) internal {
         uint256 timestamp = block.timestamp;
         if (
-            _lastBridgeOutTimestamp[bridgeId] != 0
-                && timestamp - _lastBridgeOutTimestamp[bridgeId] < bridgeCooldownDuration
+            _lastGuardedBridgeOutTimestamp[bridgeId] != 0
+                && timestamp - _lastGuardedBridgeOutTimestamp[bridgeId] < bridgeCooldownDuration
         ) {
             revert Errors.OngoingCooldown();
         }
-        _lastBridgeOutTimestamp[bridgeId] = timestamp;
+        _lastGuardedBridgeOutTimestamp[bridgeId] = timestamp;
     }
 }

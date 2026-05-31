@@ -75,10 +75,15 @@ contract GetBridgeTransferData_AcrossV4BridgeEncoder_Integration_Concrete_Test i
         );
     }
 
-    function test_RevertGiven_RouteNotRegistered_WhileInLockdownMode() public {
-        vm.prank(address(safe));
-        makinaLiteModule.setLockdownMode(true);
+    function test_RevertGiven_RouteNotRegistered_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_RouteNotRegistered_WhileInNonOpenMode();
+    }
 
+    function test_RevertGiven_RouteNotRegistered_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_RouteNotRegistered_WhileInNonOpenMode();
+    }
+
+    function _test_RevertGiven_RouteNotRegistered_WhileInNonOpenMode() internal {
         IBridgeComponent.BridgeOrder memory order;
         order.extraData = abi.encode(address(0), uint32(0));
 

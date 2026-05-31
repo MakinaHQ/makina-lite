@@ -18,7 +18,7 @@ contract MakinaLiteGovernable_Unit_Concrete_Test is Unit_Concrete_Test {
     function test_Getters() public view {
         assertEq(makinaGovernable.safe(), address(safe));
         assertEq(makinaGovernable.provider(), dao);
-        assertFalse(makinaGovernable.lockdownMode());
+        assertEq(uint256(makinaGovernable.operatingMode()), uint256(IMakinaLiteGovernable.OperatingMode.OPEN));
     }
 
     function test_SetProvider_RevertWhen_CallerUnauthorized() public {
@@ -151,25 +151,25 @@ contract MakinaLiteGovernable_Unit_Concrete_Test is Unit_Concrete_Test {
         assertFalse(makinaGovernable.isGuardian(guardian));
     }
 
-    function test_SetLockdownMode_RevertWhen_CallerUnauthorized() public {
+    function test_SetOperatingMode_RevertWhen_CallerUnauthorized() public {
         vm.expectRevert(abi.encodeWithSelector(Errors.UnauthorizedCaller.selector));
-        makinaGovernable.setLockdownMode(true);
+        makinaGovernable.setOperatingMode(IMakinaLiteGovernable.OperatingMode.FENCED);
     }
 
-    function test_SetLockdownMode() public {
+    function test_SetOperatingMode() public {
         vm.expectEmit(true, false, false, false, address(makinaGovernable));
-        emit IMakinaLiteGovernable.LockdownModeChanged(true);
+        emit IMakinaLiteGovernable.OperatingModeChanged(IMakinaLiteGovernable.OperatingMode.FENCED);
         vm.prank(address(safe));
-        makinaGovernable.setLockdownMode(true);
+        makinaGovernable.setOperatingMode(IMakinaLiteGovernable.OperatingMode.FENCED);
 
-        assertTrue(makinaGovernable.lockdownMode());
+        assertEq(uint256(makinaGovernable.operatingMode()), uint256(IMakinaLiteGovernable.OperatingMode.FENCED));
 
         vm.expectEmit(true, false, false, false, address(makinaGovernable));
-        emit IMakinaLiteGovernable.LockdownModeChanged(false);
+        emit IMakinaLiteGovernable.OperatingModeChanged(IMakinaLiteGovernable.OperatingMode.WALLED);
         vm.prank(address(safe));
-        makinaGovernable.setLockdownMode(false);
+        makinaGovernable.setOperatingMode(IMakinaLiteGovernable.OperatingMode.WALLED);
 
-        assertFalse(makinaGovernable.lockdownMode());
+        assertEq(uint256(makinaGovernable.operatingMode()), uint256(IMakinaLiteGovernable.OperatingMode.WALLED));
     }
 
     function test_Suspend_RevertWhen_CallerUnauthorized() public {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.35;
 
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
 
@@ -18,6 +19,7 @@ abstract contract Unit_Concrete_Test is Base_Test {
                     IMakinaLiteModule.MakinaLiteModuleInitParams({
                         safe: address(safe),
                         initialProvider: dao,
+                        initialOperatingMode: IMakinaLiteGovernable.OperatingMode.OPEN,
                         initialAllowedInstrRoot: bytes32(0),
                         initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
                         initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,

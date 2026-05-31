@@ -75,7 +75,11 @@ contract ManagePositionBatch_Integration_Concrete_Test is WeirollComponent_Integ
         _test_ManagePositionBatch(false);
     }
 
-    function test_ManagePositionBatch_WhileInLockdownMode() public whileInLockdownMode {
+    function test_ManagePositionBatch_WhileInFencedMode() public whileInFencedMode {
+        _test_ManagePositionBatch(false);
+    }
+
+    function test_ManagePositionBatch_WhileInWalledMode() public whileInWalledMode {
         _test_ManagePositionBatch(true);
     }
 
@@ -83,7 +87,7 @@ contract ManagePositionBatch_Integration_Concrete_Test is WeirollComponent_Integ
     /// Shared test logic
     ///
 
-    function _test_ManagePositionBatch(bool lockdownMode) internal {
+    function _test_ManagePositionBatch(bool guarded) internal {
         uint256 supplyInputAmount = 3e18;
         uint256 borrowInputAmount = 2e18;
 
@@ -106,10 +110,10 @@ contract ManagePositionBatch_Integration_Concrete_Test is WeirollComponent_Integ
         uint256 expectedBorrowPosValue = borrowInputAmount * PRICE_B_E;
 
         vm.expectEmit(true, false, false, true, address(makinaLiteModule));
-        emit IWeirollComponent.PositionManaged(true, lockdownMode, SUPPLY_POS_ID, expectedSupplyPosValue);
+        emit IWeirollComponent.PositionManaged(true, guarded, SUPPLY_POS_ID, expectedSupplyPosValue);
 
         vm.expectEmit(true, false, false, true, address(makinaLiteModule));
-        emit IWeirollComponent.PositionManaged(true, lockdownMode, BORROW_POS_ID, expectedBorrowPosValue);
+        emit IWeirollComponent.PositionManaged(true, guarded, BORROW_POS_ID, expectedBorrowPosValue);
 
         uint256[] memory values;
         int256[] memory changes;

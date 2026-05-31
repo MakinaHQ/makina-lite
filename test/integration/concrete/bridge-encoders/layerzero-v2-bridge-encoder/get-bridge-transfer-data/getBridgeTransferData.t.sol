@@ -3,6 +3,7 @@ pragma solidity 0.8.35;
 
 import {Errors} from "src/libraries/Errors.sol";
 import {IBridgeComponent} from "src/interfaces/IBridgeComponent.sol";
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {IOFT} from "src/interfaces/IOFT.sol";
 
 import {LayerZeroV2BridgeEncoder_Integration_Concrete_Test} from "../LayerZeroV2BridgeEncoder.t.sol";
@@ -227,10 +228,18 @@ contract GetBridgeTransferData_LayerZeroV2BridgeEncoder_Integration_Concrete_Tes
         assertEq(cd, abi.encodeCall(IOFT.send, (sendParam, mf, address(makinaLiteModule))));
     }
 
-    function test_RevertGiven_OftNotRegistered_WhileInLockdownMode() public {
+    function test_RevertGiven_OftNotRegistered_WhileInFencedMode() public {
+        _test_RevertGiven_OftNotRegistered_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode.FENCED);
+    }
+
+    function test_RevertGiven_OftNotRegistered_WhileInWalledMode() public {
+        _test_RevertGiven_OftNotRegistered_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode.WALLED);
+    }
+
+    function _test_RevertGiven_OftNotRegistered_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode mode) internal {
         vm.stopPrank();
         vm.prank(address(safe));
-        makinaLiteModule.setLockdownMode(true);
+        makinaLiteModule.setOperatingMode(mode);
 
         vm.startPrank(address(makinaLiteModule));
 

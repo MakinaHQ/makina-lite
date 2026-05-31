@@ -6,7 +6,7 @@ This repository contains the smart contracts of MakinaLite.
 
 MakinaLite is a lightweight version of the Makina protocol, designed for executing advanced DeFi investment strategies through [Safe](https://safe.global/) multisig wallets. It provides institutional-grade strategy execution with strong risk controls, operating as a Safe module that manages positions, executes swaps, and bridges assets on behalf of the Safe.
 
-Each MakinaLite module is deployed on top of a Safe and can be configured with a set of pre-approved [Weiroll](https://github.com/EnsoBuild/enso-weiroll) instructions, loss limits, pricing routes, and role-based access controls. Operators execute strategy actions through the module, while the Safe retains full authority over configuration and risk parameters. An optional lockdown mode enforces additional on-chain safety checks including value loss limits and bridge recipient whitelisting. Instruction Merkle proof verification is always enforced, regardless of lockdown mode.
+Each MakinaLite module is deployed on top of a Safe and can be configured with a set of pre-approved [Weiroll](https://github.com/EnsoBuild/enso-weiroll) instructions, loss limits, pricing routes, and role-based access controls. Operators execute strategy actions through the module, while the Safe retains full authority over configuration and risk parameters. A configurable operating mode adjusts how tightly operator actions are constrained on-chain. Instruction Merkle proof verification is always enforced, regardless of operating mode.
 
 See `SPECIFICATIONS.md` and `PERMISSIONS.md` for more details.
 

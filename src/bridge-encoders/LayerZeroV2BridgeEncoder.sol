@@ -54,7 +54,10 @@ contract LayerZeroV2BridgeEncoder layout at erc7201("makina.storage.LayerZeroV2B
         (address oft, uint128 lzReceiveGas, uint256 maxValue) = abi.decode(order.extraData, (address, uint128, uint256));
 
         address caller = msg.sender;
-        if (IMakinaLiteGovernable(caller).lockdownMode() && !isOftRegistered[oft]) {
+        if (
+            IMakinaLiteGovernable(caller).operatingMode() != IMakinaLiteGovernable.OperatingMode.OPEN
+                && !isOftRegistered[oft]
+        ) {
             revert Errors.OftNotRegistered();
         }
 

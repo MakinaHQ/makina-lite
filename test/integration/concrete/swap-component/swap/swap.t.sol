@@ -6,6 +6,7 @@ import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.so
 import {Errors} from "src/libraries/Errors.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
 import {MockDex} from "test/mocks/MockDex.sol";
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {ISwapComponent} from "src/interfaces/ISwapComponent.sol";
 
 import {Integration_Concrete_Test} from "../../IntegrationConcrete.t.sol";
@@ -233,7 +234,43 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         assertEq(tokenB.balanceOf(dao), expectedFee);
     }
 
-    function test_RevertGiven_PriceFeedRouteNotRegistered_WhileInLockDownMode() public whileInLockdownMode {
+    function test_RevertGiven_PriceFeedRouteNotRegistered_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_PriceFeedRouteNotRegistered();
+    }
+
+    function test_RevertGiven_PriceFeedRouteNotRegistered_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_PriceFeedRouteNotRegistered();
+    }
+
+    function test_RevertGiven_OngoingCooldown_WhileInFencedMode() public {
+        _test_RevertGiven_OngoingCooldown(IMakinaLiteGovernable.OperatingMode.FENCED);
+    }
+
+    function test_RevertGiven_OngoingCooldown_WhileInWalledMode() public {
+        _test_RevertGiven_OngoingCooldown(IMakinaLiteGovernable.OperatingMode.WALLED);
+    }
+
+    function test_RevertGiven_MaxValueLossExceeded_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_MaxValueLossExceeded();
+    }
+
+    function test_RevertGiven_MaxValueLossExceeded_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_MaxValueLossExceeded();
+    }
+
+    function test_Swap_WhileInFencedMode() public whileInFencedMode {
+        _test_Swap_WhileInNonOpenMode();
+    }
+
+    function test_Swap_WhileInWalledMode() public whileInWalledMode {
+        _test_Swap_WhileInNonOpenMode();
+    }
+
+    ///
+    /// Shared test logic
+    ///
+
+    function _test_RevertGiven_PriceFeedRouteNotRegistered() internal {
         uint256 inputAmount = 1e18;
 
         deal(address(tokenA), address(safe), inputAmount, true);
@@ -266,7 +303,7 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         makinaLiteModule.swap(order);
     }
 
-    function test_RevertGiven_OngoingCooldown_WhileInLockdownMode() public {
+    function _test_RevertGiven_OngoingCooldown(IMakinaLiteGovernable.OperatingMode mode) internal {
         uint256 inputAmount = 1e18;
         deal(address(tokenA), address(safe), 3 * inputAmount, true);
 
@@ -279,13 +316,13 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
             minOutputAmount: 0
         });
 
-        // execute a swap while not in lockdown mode
+        // execute a swap while in open mode
         vm.prank(operator);
         makinaLiteModule.swap(order);
 
-        // set lockdown mode
+        // set non-open operating mode
         vm.prank(address(safe));
-        makinaLiteModule.setLockdownMode(true);
+        makinaLiteModule.setOperatingMode(mode);
 
         // execute swap to trigger cooldown
         vm.prank(operator);
@@ -297,7 +334,7 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         makinaLiteModule.swap(order);
     }
 
-    function test_RevertGiven_MaxValueLossExceeded_WhileInLockDownMode() public whileInLockdownMode {
+    function _test_RevertGiven_MaxValueLossExceeded() internal {
         dex.setQuote(address(tokenA), address(tokenB), 10_000 - DEFAULT_MAX_SWAP_LOSS_BPS - 1, PRICE_B_A * 10_000);
 
         uint256 inputAmount = 1e18;
@@ -317,7 +354,7 @@ contract Swap_Integration_Concrete_Test is Integration_Concrete_Test {
         makinaLiteModule.swap(order);
     }
 
-    function test_Swap_WhileInLockDownMode() public whileInLockdownMode {
+    function _test_Swap_WhileInNonOpenMode() internal {
         uint256 inputAmount = 1e18;
         deal(address(tokenA), address(safe), inputAmount, true);
 

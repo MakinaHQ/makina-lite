@@ -14,7 +14,7 @@ The Safe is the ultimate owner of the module and all managed assets. It has excl
 - Can set the provider address.
 - Can add and remove operators.
 - Can add and remove guardians.
-- Can enable and disable lockdown mode.
+- Can set the operating mode.
 - Can set the allowed instruction Merkle root.
 - Can set the accounting currency.
 - Can set, update and clear price feed routes.
@@ -106,10 +106,11 @@ The following contracts use OpenZeppelin's `AccessManagedUpgradeable` with the `
 
 ## Operational States
 
-The module has three operational states that can restrict its functionality:
+The module can restrict its functionality through two independent toggles (`Paused`, `Suspended`) and the operating mode (`OPEN`, `FENCED`, `WALLED`), where `OPEN` enforces no additional restrictions:
 
-| State             | Set by   | Effect                                                                                                                                           |
-| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Paused**        | Guardian | Blocks all operator actions.                                                                                                                     |
-| **Suspended**     | Provider | Blocks all operator actions.                                                                                                                     |
-| **Lockdown Mode** | Safe     | Enforces additional safety checks: value loss limits, per-operation cooldowns, bridge recipient whitelisting, and OFT/route registration checks. |
+| State                       | Set by   | Effect                                                                                                                                                                                              |
+| --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Paused**                  | Guardian | Blocks all operator actions.                                                                                                                                                                        |
+| **Suspended**               | Provider | Blocks all operator actions.                                                                                                                                                                        |
+| **FENCED** (operating mode) | Safe     | Enforces additional safety checks on swaps and bridge transfers: value loss limits, cooldowns, bridge recipient whitelisting, and OFT/route registration checks. Position management is unaffected. |
+| **WALLED** (operating mode) | Safe     | Enforces all `FENCED` checks, plus position management restrictions: mandatory accounting, value preservation checks, and instruction cooldowns.                                                    |

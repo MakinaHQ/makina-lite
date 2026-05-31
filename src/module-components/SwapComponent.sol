@@ -16,7 +16,7 @@ abstract contract SwapComponent is ISwapComponent {
     uint256 private constant MAX_BPS = 10_000;
 
     mapping(uint16 swapperId => SwapperTargets targets) private _swapperTargets;
-    uint256 private _lastSwapTimestamp;
+    uint256 private _lastGuardedSwapTimestamp;
 
     /// @inheritdoc ISwapComponent
     uint256 public maxSwapLossBps;
@@ -38,7 +38,7 @@ abstract contract SwapComponent is ISwapComponent {
     }
 
     /// @dev Internal logic to swap tokens using a given swapper.
-    function _swap(SwapOrder calldata order, bool lockdownMode) internal returns (uint256) {
+    function _swap(SwapOrder calldata order, bool guarded) internal returns (uint256) {
         SwapperTargets storage targets = _swapperTargets[order.swapperId];
         address approvalTarget = targets.approvalTarget;
         address executionTarget = targets.executionTarget;
@@ -63,7 +63,7 @@ abstract contract SwapComponent is ISwapComponent {
             revert Errors.AmountOutTooLow();
         }
 
-        if (lockdownMode) {
+        if (guarded) {
             _checkAndSetCooldown();
 
             uint256 valOut = _valueOf(order.outputToken, order.inputToken, outputAmount);
@@ -77,7 +77,7 @@ abstract contract SwapComponent is ISwapComponent {
         return outputAmount;
     }
 
-    /// @dev Internal logic to set the maximum allowed value loss (in basis points) for token swaps while in lockdown mode.
+    /// @dev Internal logic to set the maximum allowed value loss (in basis points) for token swaps, enforced when the operating mode is not OPEN.
     function _setMaxSwapLossBps(uint256 newMaxSwapLossBps) internal {
         emit MaxSwapLossBpsChanged(maxSwapLossBps, newMaxSwapLossBps);
         maxSwapLossBps = newMaxSwapLossBps;
@@ -104,10 +104,10 @@ abstract contract SwapComponent is ISwapComponent {
     /// @dev Checks cooldown for swaps and updates the last swap timestamp.
     function _checkAndSetCooldown() internal {
         uint256 timestamp = block.timestamp;
-        if (_lastSwapTimestamp != 0 && timestamp - _lastSwapTimestamp < swapCooldownDuration) {
+        if (_lastGuardedSwapTimestamp != 0 && timestamp - _lastGuardedSwapTimestamp < swapCooldownDuration) {
             revert Errors.OngoingCooldown();
         }
-        _lastSwapTimestamp = timestamp;
+        _lastGuardedSwapTimestamp = timestamp;
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.

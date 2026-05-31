@@ -27,10 +27,10 @@ interface IBridgeComponent {
         bytes extraData;
     }
 
-    /// @notice Bridge ID => Max allowed value loss in basis points for transfers via this bridge, while in lockdown mode.
+    /// @notice Bridge ID => Max allowed value loss in basis points for transfers via this bridge, while in FENCED or WALLED mode.
     function getMaxBridgeLossBps(uint16 bridgeId) external view returns (uint256);
 
-    /// @notice Foreign Chain ID => Recipient => Whitelisting status while in lockdown mode.
+    /// @notice Foreign Chain ID => Recipient => Whitelisting status while in FENCED or WALLED mode.
     function isWhitelistedRecipient(uint256 foreignChainId, address recipient) external view returns (bool);
 
     /// @notice Cooldown duration for bridge transfers in seconds.
@@ -45,12 +45,12 @@ interface IBridgeComponent {
     /// @param maxBridgeLossBps The maximum allowed value loss in basis points.
     function setMaxBridgeLossBps(uint16 bridgeId, uint256 maxBridgeLossBps) external;
 
-    /// @notice Adds a whitelisted recipient for bridge transfer towards given foreign chain while in lockdown mode.
+    /// @notice Adds a whitelisted recipient for bridge transfer towards given foreign chain while in FENCED or WALLED mode.
     /// @param foreignChainId The foreign chain ID.
     /// @param recipient The address of the recipient.
     function addRecipient(uint256 foreignChainId, address recipient) external;
 
-    /// @notice Removes a whitelisted recipient for bridge transfer towards given foreign chain while in lockdown mode.
+    /// @notice Removes a whitelisted recipient for bridge transfer towards given foreign chain while in FENCED or WALLED mode.
     /// @param foreignChainId The foreign chain ID.
     /// @param recipient The address of the recipient.
     function removeRecipient(uint256 foreignChainId, address recipient) external;

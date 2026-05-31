@@ -2,9 +2,16 @@
 pragma solidity ^0.8.28;
 
 interface IMakinaLiteGovernable {
+    /// @notice Operating modes of a module, ordered by increasing restriction.
+    enum OperatingMode {
+        OPEN,
+        FENCED,
+        WALLED
+    }
+
     event GuardianAdded(address indexed newGuardian);
     event GuardianRemoved(address indexed guardian);
-    event LockdownModeChanged(bool indexed enabled);
+    event OperatingModeChanged(OperatingMode indexed mode);
     event OperatorAdded(address indexed newOperator);
     event OperatorRemoved(address indexed operator);
     event Paused(address indexed guardian);
@@ -25,8 +32,8 @@ interface IMakinaLiteGovernable {
     /// @notice Account => Whether the account is a guardian.
     function isGuardian(address account) external view returns (bool);
 
-    /// @notice True if the contract is in lockdown mode, false otherwise.
-    function lockdownMode() external view returns (bool);
+    /// @notice Current operating mode of the contract.
+    function operatingMode() external view returns (OperatingMode);
 
     /// @notice True if the contract is suspended by the provider, false otherwise.
     function suspendedByProvider() external view returns (bool);
@@ -54,9 +61,9 @@ interface IMakinaLiteGovernable {
     /// @param guardian The address of the guardian to remove.
     function removeGuardian(address guardian) external;
 
-    /// @notice Sets the lockdown mode.
-    /// @param enabled True to enable lockdown mode, false to disable it.
-    function setLockdownMode(bool enabled) external;
+    /// @notice Sets the operating mode.
+    /// @param newMode The operating mode to set.
+    function setOperatingMode(OperatingMode newMode) external;
 
     /// @notice Suspends operations. Used by the provider to enforce service restrictions.
     function suspend() external;

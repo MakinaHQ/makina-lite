@@ -35,7 +35,7 @@ interface ISwapComponent {
         uint256 minOutputAmount;
     }
 
-    /// @notice Max allowed value loss (in basis points) for token swaps, while in lockdown mode.
+    /// @notice Max allowed value loss (in basis points) for token swaps, while in FENCED or WALLED mode.
     function maxSwapLossBps() external view returns (uint256);
 
     /// @notice Cooldown duration for token swaps in seconds.
@@ -54,7 +54,7 @@ interface ISwapComponent {
     /// @param order The swap order object.
     function swap(SwapOrder calldata order) external;
 
-    /// @notice Sets the maximum allowed value loss (in basis points) for token swaps while in lockdown mode.
+    /// @notice Sets the maximum allowed value loss (in basis points) for token swaps while in FENCED or WALLED mode.
     /// @param newMaxSwapLossBps The new maximum swap loss in basis points.
     function setMaxSwapLossBps(uint256 newMaxSwapLossBps) external;
 

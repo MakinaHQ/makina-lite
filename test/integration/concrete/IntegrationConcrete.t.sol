@@ -3,6 +3,7 @@ pragma solidity 0.8.35;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
 import {MockBorrowModule} from "test/mocks/MockBorrowModule.sol";
@@ -58,6 +59,7 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
                     IMakinaLiteModule.MakinaLiteModuleInitParams({
                         safe: address(safe),
                         initialProvider: dao,
+                        initialOperatingMode: IMakinaLiteGovernable.OperatingMode.OPEN,
                         initialAllowedInstrRoot: bytes32(0),
                         initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
                         initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
@@ -88,9 +90,15 @@ abstract contract Integration_Concrete_Test is Base_Test, VMInstructionHelper {
         vm.stopPrank();
     }
 
-    modifier whileInLockdownMode() {
+    modifier whileInFencedMode() {
         vm.prank(address(safe));
-        makinaLiteModule.setLockdownMode(true);
+        makinaLiteModule.setOperatingMode(IMakinaLiteGovernable.OperatingMode.FENCED);
+        _;
+    }
+
+    modifier whileInWalledMode() {
+        vm.prank(address(safe));
+        makinaLiteModule.setOperatingMode(IMakinaLiteGovernable.OperatingMode.WALLED);
         _;
     }
 

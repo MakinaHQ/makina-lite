@@ -20,6 +20,16 @@ Each module is deployed as a minimal clone via the `ModuleFactory` and initializ
 
 The module isn't meant to hold ERC20 balances between operations. Swaps, bridges, and flash loans pull inputs from the Safe and forward outputs back within the same call, while Weiroll instructions run directly in the Safe's context. `sweepERC20` (Safe-only) recovers any ERC20 that lands on the module by mistake.
 
+#### Operating Mode
+
+The Safe can set the module's operating mode, which determines the on-chain safety checks enforced on operator actions. The three modes are ordered by increasing restriction:
+
+- **OPEN**: No additional restrictions are enforced.
+- **FENCED**: Restrictions are enforced on value-exit paths — swaps and bridge transfers — namely value loss limits, cooldowns, bridge recipient whitelisting, and route/OFT registration checks. Position management remains unrestricted.
+- **WALLED**: All `FENCED` restrictions, plus position management restrictions — mandatory accounting, value preservation checks, and instruction cooldowns.
+
+Instruction Merkle proof verification is always enforced, regardless of operating mode. The default mode after initialization is `OPEN`.
+
 ### Position Management
 
 Position management is handled by the `WeirollComponent`, which leverages the [Weiroll](https://github.com/EnsoBuild/enso-weiroll) command-chaining framework to execute DeFi operations through the Safe via delegatecall.
@@ -30,7 +40,7 @@ A set of instructions can be pre-approved and registered in a Merkle tree, whose
 
 Instructions can be of four different types:
 
-- **MANAGEMENT**: Modifies the size of a position. May be associated with an `ACCOUNTING` instruction. In lockdown mode, an associated `ACCOUNTING` instruction is required.
+- **MANAGEMENT**: Modifies the size of a position. May be associated with an `ACCOUNTING` instruction. In `WALLED` mode, an associated `ACCOUNTING` instruction is required.
 - **ACCOUNTING**: Calculates the asset amounts used to value a position. Applies to one or more `MANAGEMENT` instructions for the matching position ID.
 - **HARVEST**: Collects rewards earned by open positions from external protocols.
 - **FLASHLOAN_MANAGEMENT**: Modifies the size of a position in the context of a flash loan, as part of an outer `MANAGEMENT` instruction. A `FLASHLOAN_MANAGEMENT` instruction is always associated with a `MANAGEMENT` instruction and can only be executed in its scope.
@@ -39,18 +49,18 @@ Each `Instruction` object includes an `affectedTokens` list. For `MANAGEMENT` in
 
 #### Position Value Loss Checks
 
-When lockdown mode is enabled, position management operations enforce value loss limits. After each management instruction, the module compares the position value change against the change in affected token balances held by the Safe:
+When in `WALLED` mode, position management operations enforce value loss limits. After each management instruction, the module compares the position value change against the change in affected token balances held by the Safe:
 
 - For position increases: the position value gained must be within `maxPositionIncreaseLossBps` of the tokens spent.
 - For position decreases: the tokens received must be within `maxPositionDecreaseLossBps` of the position value lost.
 
 #### Instruction Cooldown
 
-When lockdown mode is enabled, management instructions are subject to a cooldown. After each successful management instruction, the module records a timestamp keyed by the tuple `(positionId, commands, direction)`, where `direction` reflects whether the operation increased or decreased the position value. Re-running the same management script on the same position in the same direction is rejected until the configured instruction cooldown duration has elapsed.
+When in `WALLED` mode, management instructions are subject to a cooldown. After each successful management instruction, the module records a timestamp keyed by the tuple `(positionId, commands, direction)`, where `direction` reflects whether the operation increased or decreased the position value. Re-running the same management script on the same position in the same direction is rejected until the configured instruction cooldown duration has elapsed.
 
 #### Assumptions
 
-The protocol relies on specific assumptions on the instructions. Some are always required for correct behavior, while others are only relevant in lockdown mode but remain best practice regardless.
+The protocol relies on specific assumptions on the instructions. Some are always required for correct behavior, while others are only relevant in `WALLED` mode but remain best practice regardless.
 
 - **ACCOUNTING**:
   - They must not introduce changes in position states or token balances.
@@ -70,7 +80,7 @@ The protocol relies on specific assumptions on the instructions. Some are always
 
 The `SwapComponent` enables the module to execute token swaps through external DEX protocols using unverified calldata. For each registered swapper, an approval target and an execution target are configured. The module pulls funds from the Safe, approves the approval target, executes the swap calldata on the execution target, revokes the approval, and returns the output tokens to the Safe.
 
-When lockdown mode is enabled, swap operations enforce a value loss limit (`maxSwapLossBps`) by comparing the output value against the input value using oracle prices.
+When in `FENCED` or `WALLED` mode, swap operations enforce a value loss limit (`maxSwapLossBps`) by comparing the output value against the input value using oracle prices.
 
 #### Fees
 
@@ -78,7 +88,7 @@ A configurable swap fee rate, set by the provider, is applied to every swap outp
 
 #### Cooldown
 
-When lockdown mode is enabled, swaps are subject to a cooldown. The module records the timestamp of the last successful swap and rejects subsequent swaps until the configured swap cooldown duration has elapsed. The cooldown is global to the swap component and is not segmented by swapper, input token, or output token. It also applies to swaps performed as part of a `harvest` call, since all orders in a single call execute in the same block, a `harvest` carrying more than one swap order can only be executed while not in lockdown mode.
+When in `FENCED` or `WALLED` mode, swaps are subject to a cooldown. The module records the timestamp of the last successful swap and rejects subsequent swaps until the configured swap cooldown duration has elapsed. The cooldown is global to the swap component and is not segmented by swapper, input token, or output token. It also applies to swaps performed as part of a `harvest` call: since all orders in a single call execute in the same block, a `harvest` carrying more than one swap order can only be executed in `OPEN` mode.
 
 ### Oracle Registry
 
@@ -87,7 +97,7 @@ The `OracleRegistry` component prices tokens in a reference currency (e.g. USD) 
 The oracle is used for:
 
 - Position value calculations during accounting.
-- Value loss enforcement during swaps and position management in lockdown mode.
+- Value loss enforcement during swaps (`FENCED` or `WALLED` mode) and position management (`WALLED` mode).
 
 #### Accounting Currency
 
@@ -99,9 +109,9 @@ The `BridgeComponent` enables cross-chain token transfers through a modular brid
 
 For each bridge transfer, the module pulls the input token from the Safe and delegates the calldata encoding to the corresponding bridge encoder registered in the `MakinaLiteRegistry` for the given bridge ID.
 
-#### Lockdown Mode Restrictions
+#### Operating Mode Restrictions
 
-When lockdown mode is enabled, bridge transfers enforce:
+When in `FENCED` or `WALLED` mode, bridge transfers enforce:
 
 - **Recipient whitelisting**: The recipient on the destination chain must be whitelisted for that specific chain ID.
 - **Value loss limits**: The minimum output amount must be within `maxBridgeLossBps` of the input amount.
@@ -110,11 +120,11 @@ When lockdown mode is enabled, bridge transfers enforce:
 
 #### Supported Bridge Protocols
 
-**Across V4** (`AcrossV4BridgeEncoder`): Routes tokens through the Across V4 SpokePool using `depositV3Now`. Supports configurable token routes (input token to output token per destination chain). In lockdown mode, only registered routes are allowed.
+**Across V4** (`AcrossV4BridgeEncoder`): Routes tokens through the Across V4 SpokePool using `depositV3Now`. Supports configurable token routes (input token to output token per destination chain). In `FENCED` or `WALLED` mode, only registered routes are allowed.
 
 **Circle CCTP V2** (`CctpV2BridgeEncoder`): Bridges tokens through Circle's Cross-Chain Transfer Protocol using `depositForBurnWithHook`. Maintains a mapping of EVM chain IDs to CCTP domains.
 
-**LayerZero V2** (`LayerZeroV2BridgeEncoder`): Bridges tokens through LayerZero's OFT (Omnichain Fungible Token) standard. Maintains mappings of EVM chain IDs to LayerZero endpoint IDs and a registry of allowed OFT contracts. In lockdown mode, only registered OFTs are allowed.
+**LayerZero V2** (`LayerZeroV2BridgeEncoder`): Bridges tokens through LayerZero's OFT (Omnichain Fungible Token) standard. Maintains mappings of EVM chain IDs to LayerZero endpoint IDs and a registry of allowed OFT contracts. In `FENCED` or `WALLED` mode, only registered OFTs are allowed.
 
 LayerZero transfers require a native gas fee to be paid alongside the transfer. The module therefore needs to hold a small native balance as a gas buffer. `sweepNative` (Safe-only) allows the Safe to recover this balance at any time.
 

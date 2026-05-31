@@ -36,7 +36,7 @@ abstract contract WeirollComponent is IWeirollComponent {
     bytes32 private constant IS_MANAGING_FLASHLOAN_SLOT =
         0x8af85af09dfd26c2dc59ce2f32b0ca3422706a314bdc173e6610c5138eba2b00;
 
-    mapping(bytes32 executionHash => uint256 timestamp) private _lastLockdownExecTimestamps;
+    mapping(bytes32 executionHash => uint256 timestamp) private _lastGuardedExecTimestamps;
 
     /// @inheritdoc IWeirollComponent
     address public immutable weirollVm;
@@ -64,7 +64,7 @@ abstract contract WeirollComponent is IWeirollComponent {
     function _managePosition(
         Instruction calldata mgmtInstruction,
         Instruction calldata acctInstruction,
-        bool lockdownMode,
+        bool guarded,
         address safe
     ) internal returns (uint256 value, int256 change) {
         uint256 posId = mgmtInstruction.positionId;
@@ -87,12 +87,12 @@ abstract contract WeirollComponent is IWeirollComponent {
                 revert Errors.InstructionsMismatch();
             }
             valueBefore = _accountForPosition(acctInstruction, true, safe);
-        } else if (lockdownMode) {
+        } else if (guarded) {
             revert Errors.AccountingMandatory();
         }
 
         uint256 affectedTokensValueBefore;
-        if (lockdownMode) {
+        if (guarded) {
             affectedTokensValueBefore = _aggregateTokensValue(mgmtInstruction.affectedTokens, safe);
         }
 
@@ -102,7 +102,7 @@ abstract contract WeirollComponent is IWeirollComponent {
             value = _accountForPosition(acctInstruction, false, safe);
             change = int256(value) - int256(valueBefore);
 
-            if (lockdownMode) {
+            if (guarded) {
                 uint256 affectedTokensValueAfter = _aggregateTokensValue(mgmtInstruction.affectedTokens, safe);
 
                 bool isPositionIncrease = change > 0;
@@ -130,7 +130,7 @@ abstract contract WeirollComponent is IWeirollComponent {
         MANAGED_POSITION_ID_SLOT.asUint256().tstore(0);
         IS_MANAGED_POSITION_DEBT_SLOT.asBoolean().tstore(false);
 
-        emit PositionManaged(acctInstructionProvided, lockdownMode, posId, value);
+        emit PositionManaged(acctInstructionProvided, guarded, posId, value);
     }
 
     /// @dev Manages and refunds flash loan funds.
@@ -370,12 +370,12 @@ abstract contract WeirollComponent is IWeirollComponent {
     function _checkAndSetCooldown(bytes32 executionHash) internal {
         uint256 timestamp = block.timestamp;
         if (
-            _lastLockdownExecTimestamps[executionHash] != 0
-                && timestamp - _lastLockdownExecTimestamps[executionHash] < instrCooldownDuration
+            _lastGuardedExecTimestamps[executionHash] != 0
+                && timestamp - _lastGuardedExecTimestamps[executionHash] < instrCooldownDuration
         ) {
             revert Errors.OngoingCooldown();
         }
-        _lastLockdownExecTimestamps[executionHash] = timestamp;
+        _lastGuardedExecTimestamps[executionHash] = timestamp;
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.

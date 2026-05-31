@@ -13,9 +13,7 @@ interface IWeirollComponent {
     event MaxPositionDecreaseLossBpsChanged(
         uint256 oldMaxPositionDecreaseLossBps, uint256 newMaxPositionDecreaseLossBps
     );
-    event PositionManaged(
-        bool indexed withValuation, bool indexed lockdownMode, uint256 indexed positionId, uint256 value
-    );
+    event PositionManaged(bool indexed withValuation, bool indexed guarded, uint256 indexed positionId, uint256 value);
 
     enum InstructionType {
         MANAGEMENT,
@@ -59,10 +57,10 @@ interface IWeirollComponent {
     /// @dev If set to address(0), the reference currency of the OracleRegistry is used.
     function accountingCurrency() external view returns (address);
 
-    /// @notice Max allowed value loss (in basis points) when increasing a position, while in lockdown mode.
+    /// @notice Max allowed value loss (in basis points) when increasing a position, while in WALLED mode.
     function maxPositionIncreaseLossBps() external view returns (uint256);
 
-    /// @notice Max allowed value loss (in basis points) when decreasing a position, while in lockdown mode.
+    /// @notice Max allowed value loss (in basis points) when decreasing a position, while in WALLED mode.
     function maxPositionDecreaseLossBps() external view returns (uint256);
 
     /// @notice Cooldown duration for instruction executions in seconds.
@@ -85,10 +83,10 @@ interface IWeirollComponent {
     /// @notice Manages a position's state through paired management and accounting instructions.
     /// @dev If `acctInstruction` is provided, it is executed before and after the management instruction to
     /// compute the new position value and its signed delta.
-    /// @dev In lockdown mode, `acctInstruction` must be provided and value preservation checks are applied using
+    /// @dev In WALLED mode, `acctInstruction` must be provided and value preservation checks are applied using
     /// a validation matrix to prevent economic inconsistencies between position changes and token flows.
     ///
-    /// The lockdown mode matrix evaluates three factors to determine required validations:
+    /// The WALLED mode matrix evaluates three factors to determine required validations:
     /// - Affected Tokens flow - Sign of the change in the Safe's aggregate value of `mgmtInstruction.affectedTokens`
     /// - Debt Position - Whether position represents protocol liability (true) vs asset (false)
     /// - Position Δ direction - Direction of position value change (increase/decrease/null)

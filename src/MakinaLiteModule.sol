@@ -45,7 +45,7 @@ contract MakinaLiteModule is
 
     /// @inheritdoc IMakinaLiteModule
     function initialize(MakinaLiteModuleInitParams calldata params) external override initializer {
-        __MakinaLiteGovernable_init(params.safe, params.initialProvider);
+        __MakinaLiteGovernable_init(params.safe, params.initialProvider, params.initialOperatingMode);
 
         _setAllowedInstrRoot(params.initialAllowedInstrRoot);
 
@@ -124,7 +124,7 @@ contract MakinaLiteModule is
         IWeirollComponent.Instruction calldata mgmtInstruction,
         IWeirollComponent.Instruction calldata acctInstruction
     ) external override nonReentrant whenOperational onlyOperator returns (uint256, int256) {
-        return _managePosition(mgmtInstruction, acctInstruction, lockdownMode, safe);
+        return _managePosition(mgmtInstruction, acctInstruction, operatingMode == OperatingMode.WALLED, safe);
     }
 
     /// @inheritdoc IWeirollComponent
@@ -141,7 +141,8 @@ contract MakinaLiteModule is
         int256[] memory changes = new int256[](len);
 
         for (uint256 i; i < len; ++i) {
-            (values[i], changes[i]) = _managePosition(mgmtInstructions[i], acctInstructions[i], lockdownMode, safe);
+            (values[i], changes[i]) =
+                _managePosition(mgmtInstructions[i], acctInstructions[i], operatingMode == OperatingMode.WALLED, safe);
         }
 
         return (values, changes);
@@ -246,7 +247,7 @@ contract MakinaLiteModule is
     {
         address encoder = IMakinaLiteRegistry(registry).getBridgeEncoder(order.bridgeId);
         _pullERC20FromSafe(order.inputToken, order.inputAmount, address(this));
-        _sendOutBridgeTransfer(order, encoder, lockdownMode);
+        _sendOutBridgeTransfer(order, encoder, operatingMode != OperatingMode.OPEN);
     }
 
     /// @inheritdoc IBridgeComponent
@@ -288,7 +289,7 @@ contract MakinaLiteModule is
     function _swapForSafe(ISwapComponent.SwapOrder calldata order) internal {
         _pullERC20FromSafe(order.inputToken, order.inputAmount, address(this));
 
-        uint256 amountOut = _swap(order, lockdownMode);
+        uint256 amountOut = _swap(order, operatingMode != OperatingMode.OPEN);
 
         uint256 fee = _chargeSwapFee(order.outputToken, amountOut);
 
