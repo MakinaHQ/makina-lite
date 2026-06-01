@@ -54,6 +54,8 @@ When in `WALLED` mode, position management operations enforce value loss limits.
 - For position increases: the position value gained must be within `maxPositionIncreaseLossBps` of the tokens spent.
 - For position decreases: the tokens received must be within `maxPositionDecreaseLossBps` of the position value lost.
 
+**Limitation:** these value loss checks cannot be robustly enforced for instructions that embed arbitrary operator-supplied calldata, such as routing through a DEX aggregator. Such calldata can hand control to third parties mid-execution through reentrant intermediary tokens or protocol callbacks, which can inflate the Safe's measured balances (e.g. by settling a pending inbound bridge transfer, claiming a bridge refund, claiming permissionless rewards), thereby masking a real loss. Whitelisting such instructions is therefore discouraged.
+
 #### Instruction Cooldown
 
 When in `WALLED` mode, management instructions are subject to a cooldown. After each successful management instruction, the module records a timestamp keyed by the tuple `(positionId, commands, direction)`, where `direction` reflects whether the operation increased or decreased the position value. Re-running the same management script on the same position in the same direction is rejected until the configured instruction cooldown duration has elapsed.
@@ -64,7 +66,7 @@ The protocol relies on specific assumptions on the instructions. Some are always
 
 - **ACCOUNTING**:
   - They must not introduce changes in position states or token balances.
-  - Their output must be resistant to manipulation by third parties (e.g., via sandwich attacks).
+  - Their output must be resistant to manipulation by third parties (e.g. via sandwich attacks).
   - The `affectedTokens` list must include exactly all tokens in which the position size is expressed.
   - Their output state must start with an ordered list of amounts (one amount per slot) matching the order of `affectedTokens`, followed by an end-of-args flag.
 - **MANAGEMENT**:
