@@ -75,7 +75,7 @@ contract MakinaLiteModule is
         uint256 stalenessThreshold1,
         address feed2,
         uint256 stalenessThreshold2
-    ) external override onlySafe {
+    ) external override nonReentrant onlySafe {
         _setFeedRoute(token, feed1, stalenessThreshold1, feed2, stalenessThreshold2);
     }
 
