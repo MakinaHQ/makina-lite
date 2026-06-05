@@ -101,8 +101,8 @@ abstract contract BridgeComponent is IBridgeComponent {
     function _checkAndSetCooldown(uint16 bridgeId) internal {
         uint256 timestamp = block.timestamp;
         if (
-            _lastGuardedBridgeOutTimestamps[bridgeId] != 0
-                && timestamp - _lastGuardedBridgeOutTimestamps[bridgeId] < bridgeCooldownDuration
+            timestamp - _lastGuardedBridgeOutTimestamps[bridgeId] < bridgeCooldownDuration
+                && _lastGuardedBridgeOutTimestamps[bridgeId] != 0
         ) {
             revert Errors.OngoingCooldown();
         }

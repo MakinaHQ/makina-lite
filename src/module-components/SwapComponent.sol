@@ -104,7 +104,7 @@ abstract contract SwapComponent is ISwapComponent {
     /// @dev Checks cooldown for swaps and updates the last guarded swap timestamp.
     function _checkAndSetCooldown() internal {
         uint256 timestamp = block.timestamp;
-        if (_lastGuardedSwapTimestamp != 0 && timestamp - _lastGuardedSwapTimestamp < swapCooldownDuration) {
+        if (timestamp - _lastGuardedSwapTimestamp < swapCooldownDuration && _lastGuardedSwapTimestamp != 0) {
             revert Errors.OngoingCooldown();
         }
         _lastGuardedSwapTimestamp = timestamp;

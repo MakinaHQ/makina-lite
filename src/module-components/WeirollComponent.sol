@@ -370,8 +370,8 @@ abstract contract WeirollComponent is IWeirollComponent {
     function _checkAndSetCooldown(bytes32 executionHash) internal {
         uint256 timestamp = block.timestamp;
         if (
-            _lastGuardedExecTimestamps[executionHash] != 0
-                && timestamp - _lastGuardedExecTimestamps[executionHash] < instrCooldownDuration
+            timestamp - _lastGuardedExecTimestamps[executionHash] < instrCooldownDuration
+                && _lastGuardedExecTimestamps[executionHash] != 0
         ) {
             revert Errors.OngoingCooldown();
         }
