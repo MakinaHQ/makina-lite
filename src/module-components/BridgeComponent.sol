@@ -19,6 +19,10 @@ abstract contract BridgeComponent is IBridgeComponent {
 
     mapping(uint16 bridgeId => uint256 maxBridgeLossBps) private _maxBridgeLossBps;
     mapping(uint256 foreignChainId => mapping(address recipient => bool isWhitelisted)) private _isWhitelistedRecipient;
+    mapping(uint16 bridgeId => uint256 timestamp) private _lastGuardedBridgeOutTimestamps;
+
+    /// @inheritdoc IBridgeComponent
+    uint256 public bridgeCooldownDuration;
 
     /// @inheritdoc IBridgeComponent
     function getMaxBridgeLossBps(uint16 bridgeId) external view returns (uint256) {
@@ -30,22 +34,26 @@ abstract contract BridgeComponent is IBridgeComponent {
         return _isWhitelistedRecipient[foreignChainId][recipient];
     }
 
-    function _sendOutBridgeTransfer(IBridgeComponent.BridgeOrder calldata order, address encoder, bool lockdownMode)
+    function _sendOutBridgeTransfer(IBridgeComponent.BridgeOrder calldata order, address encoder, bool guarded)
         internal
     {
-        uint256 maxLossBps = _maxBridgeLossBps[order.bridgeId];
-        if (lockdownMode) {
+        if (guarded) {
+            _checkAndSetCooldown(order.bridgeId);
+
             if (!_isWhitelistedRecipient[order.destinationChainId][order.recipient]) {
                 revert Errors.RecipientNotWhitelisted();
             }
 
-            if (order.minOutputAmount < order.inputAmount.mulDiv(MAX_BPS - maxLossBps, MAX_BPS, Math.Rounding.Ceil)) {
+            if (
+                order.minOutputAmount
+                    < order.inputAmount.mulDiv(MAX_BPS - _maxBridgeLossBps[order.bridgeId], MAX_BPS, Math.Rounding.Ceil)
+            ) {
                 revert Errors.MaxValueLossExceeded();
             }
         }
 
         (address approvalTarget, address executionTarget, uint256 value, bytes memory cd) =
-            IBridgeEncoder(encoder).getBridgeTransferData(order, lockdownMode);
+            IBridgeEncoder(encoder).getBridgeTransferData(order);
 
         if (approvalTarget != address(0)) {
             IERC20(order.inputToken).forceApprove(approvalTarget, order.inputAmount);
@@ -59,13 +67,19 @@ abstract contract BridgeComponent is IBridgeComponent {
         }
     }
 
-    /// @dev Internal logic to set the max allowed value loss in basis points for transfers via a given bridge.
+    /// @dev Internal logic to set the maximum allowed relative value loss for transfers via a given bridge.
     function _setMaxBridgeLossBps(uint16 bridgeId, uint256 newMaxBridgeLossBps) internal {
         emit MaxBridgeLossBpsChanged(bridgeId, _maxBridgeLossBps[bridgeId], newMaxBridgeLossBps);
         _maxBridgeLossBps[bridgeId] = newMaxBridgeLossBps;
     }
 
-    /// @dev Internal logic to add a whitelisted recipient for bridge transfer towards given foreign chain.
+    /// @dev Internal logic to set the cooldown duration for bridge transfers.
+    function _setBridgeCooldownDuration(uint256 newBridgeCooldownDuration) internal {
+        emit BridgeCooldownDurationChanged(bridgeCooldownDuration, newBridgeCooldownDuration);
+        bridgeCooldownDuration = newBridgeCooldownDuration;
+    }
+
+    /// @dev Internal logic to add a whitelisted recipient for bridge transfer to a given foreign chain.
     function _addRecipient(uint256 foreignChainId, address recipient) internal {
         if (_isWhitelistedRecipient[foreignChainId][recipient]) {
             revert Errors.RecipientAlreadyWhitelisted();
@@ -74,12 +88,24 @@ abstract contract BridgeComponent is IBridgeComponent {
         emit BridgeTransferRecipientAdded(foreignChainId, recipient);
     }
 
-    /// @dev Internal logic to remove a whitelisted recipient for bridge transfer towards given foreign chain.
+    /// @dev Internal logic to remove a whitelisted recipient for bridge transfer to a given foreign chain.
     function _removeRecipient(uint256 foreignChainId, address recipient) internal {
         if (!_isWhitelistedRecipient[foreignChainId][recipient]) {
             revert Errors.RecipientNotWhitelisted();
         }
         _isWhitelistedRecipient[foreignChainId][recipient] = false;
         emit BridgeTransferRecipientRemoved(foreignChainId, recipient);
+    }
+
+    /// @dev Checks cooldown for a given bridge and updates its last guarded outgoing transfer timestamp.
+    function _checkAndSetCooldown(uint16 bridgeId) internal {
+        uint256 timestamp = block.timestamp;
+        if (
+            timestamp - _lastGuardedBridgeOutTimestamps[bridgeId] < bridgeCooldownDuration
+                && _lastGuardedBridgeOutTimestamps[bridgeId] != 0
+        ) {
+            revert Errors.OngoingCooldown();
+        }
+        _lastGuardedBridgeOutTimestamps[bridgeId] = timestamp;
     }
 }

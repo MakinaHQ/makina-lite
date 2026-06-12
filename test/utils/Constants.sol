@@ -10,7 +10,9 @@ abstract contract Constants {
 
     uint256 internal constant DEFAULT_MAX_POS_INCREASE_LOSS_BPS = 100;
     uint256 internal constant DEFAULT_MAX_POS_DECREASE_LOSS_BPS = 1000;
+    uint256 internal constant DEFAULT_INSTR_COOLDOWN_DURATION = 10 seconds;
     uint256 internal constant DEFAULT_MAX_SWAP_LOSS_BPS = 200;
+    uint256 internal constant DEFAULT_SWAP_COOLDOWN_DURATION = 20 seconds;
     uint256 internal constant DEFAULT_SWAP_FEE_RATE = 1e15; // 0.1%
     uint256 internal constant DEFAULT_MAX_BRIDGE_LOSS_BPS = 300;
 

@@ -196,7 +196,67 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         _test_Harvest_WithSwap_WithFee();
     }
 
-    function test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileInLockDownMode() public whileInLockdownMode {
+    function test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_MaxValueLossExceeded_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_MaxValueLossExceeded_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_MaxValueLossExceeded_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_MaxValueLossExceeded_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_SwapperExecutionFails_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_SwapperExecutionFails_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_SwapperExecutionFails_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_SwapperExecutionFails_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_SwapAmountOutTooLow_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_SwapAmountOutTooLow_WhileNotInOpenMode();
+    }
+
+    function test_RevertGiven_SwapAmountOutTooLow_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_SwapAmountOutTooLow_WhileNotInOpenMode();
+    }
+
+    function test_RevertWhen_MoreThanOneSwap_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertWhen_MoreThanOneSwap_WhileNotInOpenMode();
+    }
+
+    function test_RevertWhen_MoreThanOneSwap_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertWhen_MoreThanOneSwap_WhileNotInOpenMode();
+    }
+
+    function test_Harvest_NoSwap_WhileInFencedMode() public whileInFencedMode {
+        _test_Harvest_NoSwap();
+    }
+
+    function test_Harvest_NoSwap_WhileInWalledMode() public whileInWalledMode {
+        _test_Harvest_NoSwap();
+    }
+
+    function test_Harvest_WithSwap_WhileInFencedMode() public whileInFencedMode {
+        _test_Harvest_WithSwap_WithFee();
+    }
+
+    function test_Harvest_WithSwap_WhileInWalledMode() public whileInWalledMode {
+        _test_Harvest_WithSwap_WithFee();
+    }
+
+    ///
+    /// Shared test logic
+    ///
+
+    function _test_RevertGiven_PriceFeedRouteNotRegistered_WithSwap_WhileNotInOpenMode() internal {
         uint256 harvestAmount = 1e18;
 
         IWeirollComponent.Instruction memory instruction =
@@ -230,7 +290,7 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         makinaLiteModule.harvest(instruction, swapOrders);
     }
 
-    function test_RevertGiven_MaxValueLossExceeded_WhileInLockDownMode() public whileInLockdownMode {
+    function _test_RevertGiven_MaxValueLossExceeded_WhileNotInOpenMode() internal {
         dex.setQuote(address(tokenA), address(tokenB), 10_000 - DEFAULT_MAX_SWAP_LOSS_BPS - 1, PRICE_B_A * 10_000);
 
         uint256 harvestAmount = 1e18;
@@ -253,7 +313,7 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         makinaLiteModule.harvest(instruction, swapOrders);
     }
 
-    function test_RevertGiven_SwapperExecutionFails_WhileInLockdownMode() public whileInLockdownMode {
+    function _test_RevertGiven_SwapperExecutionFails_WhileNotInOpenMode() internal {
         deal(address(tokenB), address(dex), 0, true);
 
         uint256 harvestAmount = 1e18;
@@ -276,7 +336,7 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         makinaLiteModule.harvest(instruction, swapOrders);
     }
 
-    function test_RevertGiven_SwapAmountOutTooLow_WhileInLockDownMode() public whileInLockdownMode {
+    function _test_RevertGiven_SwapAmountOutTooLow_WhileNotInOpenMode() internal {
         uint256 harvestAmount = 1e18;
         deal(address(tokenA), address(safe), harvestAmount, true);
 
@@ -299,17 +359,36 @@ contract Harvest_Integration_Concrete_Test is WeirollComponent_Integration_Concr
         makinaLiteModule.harvest(instruction, swapOrders);
     }
 
-    function test_Harvest_NoSwap_WhileInLockDownMode() public whileInLockdownMode {
-        _test_Harvest_NoSwap();
-    }
+    function _test_RevertWhen_MoreThanOneSwap_WhileNotInOpenMode() internal {
+        uint256 harvestAmount = 1e18;
+        deal(address(tokenA), address(safe), harvestAmount, true);
 
-    function test_Harvest_WithSwap_WhileInLockDownMode() public whileInLockdownMode {
-        _test_Harvest_WithSwap_WithFee();
-    }
+        uint256 previewSwap = dex.previewSwap(address(tokenA), address(tokenB), harvestAmount);
 
-    ///
-    /// Shared test logic
-    ///
+        IWeirollComponent.Instruction memory instruction =
+            _buildMockRewardTokenHarvestInstruction(address(safe), address(tokenA), harvestAmount);
+        ISwapComponent.SwapOrder[] memory swapOrders = new ISwapComponent.SwapOrder[](2);
+        swapOrders[0] = ISwapComponent.SwapOrder({
+            swapperId: TEST_SWAPPER_ID,
+            data: abi.encodeCall(MockDex.swap, (address(tokenA), address(tokenB), harvestAmount)),
+            inputToken: address(tokenA),
+            outputToken: address(tokenB),
+            inputAmount: harvestAmount,
+            minOutputAmount: previewSwap
+        });
+        swapOrders[1] = ISwapComponent.SwapOrder({
+            swapperId: TEST_SWAPPER_ID,
+            data: abi.encodeCall(MockDex.swap, (address(tokenB), address(tokenA), previewSwap / 2)),
+            inputToken: address(tokenB),
+            outputToken: address(tokenA),
+            inputAmount: previewSwap / 2,
+            minOutputAmount: 0
+        });
+
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        vm.prank(operator);
+        makinaLiteModule.harvest(instruction, swapOrders);
+    }
 
     function _test_Harvest_NoSwap() internal {
         uint256 harvestAmount = 1e18;

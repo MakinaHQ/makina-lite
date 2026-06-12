@@ -27,6 +27,10 @@ contract MakinaLiteRegistry layout at erc7201("makina.storage.MakinaLiteRegistry
 
     mapping(uint16 bridgeId => address encoder) private _bridgeEncoders;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(address initialAuthority) external initializer {
         __AccessManaged_init(initialAuthority);
     }

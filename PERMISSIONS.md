@@ -11,19 +11,21 @@ MakinaLite uses two distinct access control systems:
 
 The Safe is the ultimate owner of the module and all managed assets. It has exclusive authority over configuration and risk parameters.
 
-- Can set the provider address.
 - Can add and remove operators.
 - Can add and remove guardians.
-- Can enable and disable lockdown mode.
+- Can set the operating mode.
 - Can set the allowed instruction Merkle root.
 - Can set the accounting currency.
 - Can set, update and clear price feed routes.
 - Can set price feed staleness thresholds.
 - Can set the maximum allowed value loss for position increases.
 - Can set the maximum allowed value loss for position decreases.
+- Can set the cooldown duration for position management instructions.
 - Can set the maximum allowed value loss for token swaps.
+- Can set the cooldown duration for token swaps.
 - Can set swapper approval and execution targets.
 - Can set the maximum allowed value loss for bridge transfers.
+- Can set the cooldown duration for bridge transfers.
 - Can add and remove whitelisted bridge transfer recipients.
 - Can sweep ERC20 tokens held by the module back to the Safe.
 - Can sweep native tokens held by the module back to the Safe.
@@ -103,10 +105,11 @@ The following contracts use OpenZeppelin's `AccessManagedUpgradeable` with the `
 
 ## Operational States
 
-The module has three operational states that can restrict its functionality:
+The module can restrict its functionality through two independent toggles (`Paused`, `Suspended`) and the operating mode (`OPEN`, `FENCED`, `WALLED`), where `OPEN` enforces no additional restrictions:
 
-| State             | Set by   | Effect                                                                                                                                                                             |
-| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Paused**        | Guardian | Blocks all operator actions.                                                                                                                                                       |
-| **Suspended**     | Provider | Blocks all operator actions.                                                                                                                                                       |
-| **Lockdown Mode** | Safe     | Enforces additional safety checks: position value loss limits, swap value loss limits, bridge value loss limits, bridge recipient whitelisting, and OFT/route registration checks. |
+| State                       | Set by   | Effect                                                                                                                                                                                              |
+| --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Paused**                  | Guardian | Blocks all operator actions.                                                                                                                                                                        |
+| **Suspended**               | Provider | Blocks all operator actions.                                                                                                                                                                        |
+| **FENCED** (operating mode) | Safe     | Enforces additional safety checks on swaps and bridge transfers: value loss limits, cooldowns, bridge recipient whitelisting, and OFT/route registration checks. Position management is unaffected. |
+| **WALLED** (operating mode) | Safe     | Enforces all `FENCED` checks, plus position management restrictions: mandatory accounting, value preservation checks, and instruction cooldowns.                                                    |

@@ -8,6 +8,7 @@ import {
 import {IBridgeComponent} from "../interfaces/IBridgeComponent.sol";
 import {IBridgeEncoder} from "../interfaces/IBridgeEncoder.sol";
 import {ILayerZeroV2BridgeEncoder} from "../interfaces/ILayerZeroV2BridgeEncoder.sol";
+import {IMakinaLiteGovernable} from "../interfaces/IMakinaLiteGovernable.sol";
 import {IOFT} from "../interfaces/IOFT.sol";
 import {Errors} from "../libraries/Errors.sol";
 
@@ -44,14 +45,21 @@ contract LayerZeroV2BridgeEncoder layout at erc7201("makina.storage.LayerZeroV2B
     }
 
     /// @inheritdoc IBridgeEncoder
-    function getBridgeTransferData(IBridgeComponent.BridgeOrder calldata order, bool lockdownMode)
+    function getBridgeTransferData(IBridgeComponent.BridgeOrder calldata order)
         external
         view
         override
         returns (address, address, uint256, bytes memory)
     {
+        uint32 destLzEndpointId = getLzEndpointId(order.destinationChainId);
+
         (address oft, uint128 lzReceiveGas, uint256 maxValue) = abi.decode(order.extraData, (address, uint128, uint256));
-        if (lockdownMode && !isOftRegistered[oft]) {
+
+        address caller = msg.sender;
+        if (
+            IMakinaLiteGovernable(caller).operatingMode() != IMakinaLiteGovernable.OperatingMode.OPEN
+                && !isOftRegistered[oft]
+        ) {
             revert Errors.OftNotRegistered();
         }
 
@@ -67,7 +75,7 @@ contract LayerZeroV2BridgeEncoder layout at erc7201("makina.storage.LayerZeroV2B
         }
 
         IOFT.SendParam memory sendParam = IOFT.SendParam({
-            dstEid: getLzEndpointId(order.destinationChainId),
+            dstEid: destLzEndpointId,
             to: bytes32(uint256(uint160(order.recipient))),
             amountLD: order.inputAmount,
             minAmountLD: order.minOutputAmount,
@@ -89,7 +97,8 @@ contract LayerZeroV2BridgeEncoder layout at erc7201("makina.storage.LayerZeroV2B
             revert Errors.AmountOutTooLow();
         }
 
-        bytes memory cd = abi.encodeCall(IOFT.send, (sendParam, mf, msg.sender)); // solhint-disable-line check-send-result
+        // solhint-disable-next-line check-send-result
+        bytes memory cd = abi.encodeCall(IOFT.send, (sendParam, mf, caller));
 
         address approvalTarget;
         if (IOFT(oft).approvalRequired()) {

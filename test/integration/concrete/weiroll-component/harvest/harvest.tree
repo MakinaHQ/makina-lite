@@ -20,30 +20,34 @@ harvest.t.sol
                   ├── when there is no swap to execute
                   │  └── harvested token amounts should have been received by the module's safe
                   └── when there are swaps to execute
-                     ├── given lockdown mode is off
+                     ├── given operating mode is Open
                      │  ├── given one of the swap orders fails to be executed
                      │  │  └── it should revert
                      │  └── given the swap orders are all successfuly executed
-                     │     ├── given the output amount is smaller that given minimum
+                     │     ├── given one of the swap output amount is smaller than its respective given minimum
                      │     │  └── it should revert with AmountOutTooLow
-                     │     └── given the output amount is not smaller that given minimum
-                     │        ├── for each order execution, order.inputAmount of order.inputToken should have been spent in the module's safe
+                     │     └── given no swap output amount is smaller than its respective given minimum
+                     │        ├── harvested token amounts should have been received by the module's safe
+                     │        ├── for each swap order execution, order.inputAmount of order.inputToken should have been spent in the module's safe
                      │        ├── fees, if any, should have been received by fee collector
-                     │        └── at least order.minOutputAmount of order.outputToken, minus eventual fees, should have been received by the module's safe
-                     └── given lockdown mode is on
-                        ├── when one of the swap orders has an input or output token for which price data is not registered
+                     │        └── for each swap order execution, at least order.minOutputAmount of order.outputToken, minus eventual fees, should have been received by the module's safe
+                     └── given operating mode is Fenced or Walled
+                        ├── when the first swap order has an input or output token for which price data is not registered
                         │  └── it should revert with PriceFeedRouteNotRegistered
-                        └── when all swap orders have input and output tokens with registered price data
-                           ├── given one of the swap orders fails to be executed
+                        └── when the first swap order has input and output tokens with registered price data
+                           ├── given the first swap order fails to be executed
                            │  └── it should revert
-                           └── given the swap orders are all successfuly executed
-                              ├── given the output amount is smaller that given minimum
+                           └── given the first swap order is successfuly executed
+                              ├── given the swap output amount is smaller that given minimum
                               │  └── it should revert with AmountOutTooLow
-                              └── given the output amount is not smaller that given minimum
-                                 ├── given the value loss induced by one of the swaps is higher than maxSwapLossBps
+                              └── given the swap output amount is not smaller that given minimum
+                                 ├── given the value loss induced by the swap is higher than maxSwapLossBps
                                  │  └── it should revert with MaxValueLossExceeded
-                                 └── given no value loss induced by any of the swaps is higher than maxSwapLossBps
-                                    ├── for each order execution, order.inputAmount of order.inputToken should have been spent in the module's safe
-                                    ├── fees, if any, should have been received by fee collector
-                                    └── at least order.minOutputAmount of order.outputToken, minus eventual fees, should have been received by the module's safe
-
+                                 └── given the value loss induced the swap is higher than maxSwapLossBps
+                                    ├── when more than one swap order is provided
+                                    │  └── it should revert with OngoingCooldown
+                                    └── when only one swap order is provided
+                                       ├── harvested token amounts should have been received by the module's safe
+                                       ├── for each swap order execution, order.inputAmount of order.inputToken should have been spent in the module's safe
+                                       ├── fees, if any, should have been received by fee collector
+                                       └── for each swap order execution, at least order.minOutputAmount of order.outputToken, minus eventual fees, should have been received by the module's safe

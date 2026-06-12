@@ -54,7 +54,7 @@ contract Getters_Setters_WeirollComponent_Unit_Concrete_Test is WeirollComponent
     function test_SetMaxPositionIncreaseLossBps() public {
         uint256 newMaxPositionIncreaseLossBps = 300;
 
-        vm.expectEmit(true, true, false, false, address(weirollComponent));
+        vm.expectEmit(false, false, false, true, address(weirollComponent));
         emit IWeirollComponent.MaxPositionIncreaseLossBpsChanged(
             DEFAULT_MAX_POS_INCREASE_LOSS_BPS, newMaxPositionIncreaseLossBps
         );
@@ -78,7 +78,7 @@ contract Getters_Setters_WeirollComponent_Unit_Concrete_Test is WeirollComponent
     function test_SetMaxPositionDecreaseLossBps() public {
         uint256 newMaxPositionDecreaseLossBps = 500;
 
-        vm.expectEmit(true, true, false, false, address(weirollComponent));
+        vm.expectEmit(false, false, false, true, address(weirollComponent));
         emit IWeirollComponent.MaxPositionDecreaseLossBpsChanged(
             DEFAULT_MAX_POS_DECREASE_LOSS_BPS, newMaxPositionDecreaseLossBps
         );
@@ -86,5 +86,21 @@ contract Getters_Setters_WeirollComponent_Unit_Concrete_Test is WeirollComponent
         weirollComponent.setMaxPositionDecreaseLossBps(newMaxPositionDecreaseLossBps);
 
         assertEq(weirollComponent.maxPositionDecreaseLossBps(), newMaxPositionDecreaseLossBps);
+    }
+
+    function test_SetInstrCooldownDuration_RevertWhen_CallerNotSafe() public {
+        vm.expectRevert(Errors.UnauthorizedCaller.selector);
+        weirollComponent.setInstrCooldownDuration(0);
+    }
+
+    function test_SetInstrCooldownDuration() public {
+        uint256 newInstrCooldownDuration = 30 seconds;
+
+        vm.expectEmit(false, false, false, true, address(weirollComponent));
+        emit IWeirollComponent.InstrCooldownDurationChanged(DEFAULT_INSTR_COOLDOWN_DURATION, newInstrCooldownDuration);
+        vm.prank(address(safe));
+        weirollComponent.setInstrCooldownDuration(newInstrCooldownDuration);
+
+        assertEq(weirollComponent.instrCooldownDuration(), newInstrCooldownDuration);
     }
 }

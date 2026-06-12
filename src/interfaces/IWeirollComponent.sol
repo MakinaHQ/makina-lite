@@ -6,15 +6,14 @@ import {ISwapComponent} from "./ISwapComponent.sol";
 interface IWeirollComponent {
     event AllowedInstrRootChanged(bytes32 indexed oldRoot, bytes32 indexed newRoot);
     event AccountingCurrencyChanged(address indexed oldAccountingCurrency, address indexed newAccountingCurrency);
+    event InstrCooldownDurationChanged(uint256 oldInstrCooldownDuration, uint256 newInstrCooldownDuration);
     event MaxPositionIncreaseLossBpsChanged(
         uint256 oldMaxPositionIncreaseLossBps, uint256 newMaxPositionIncreaseLossBps
     );
     event MaxPositionDecreaseLossBpsChanged(
         uint256 oldMaxPositionDecreaseLossBps, uint256 newMaxPositionDecreaseLossBps
     );
-    event PositionManaged(
-        bool indexed withValuation, bool indexed lockdownMode, uint256 indexed positionId, uint256 value
-    );
+    event PositionManaged(bool indexed withValuation, bool indexed guarded, uint256 indexed positionId, uint256 value);
 
     enum InstructionType {
         MANAGEMENT,
@@ -58,14 +57,16 @@ interface IWeirollComponent {
     /// @dev If set to address(0), the reference currency of the OracleRegistry is used.
     function accountingCurrency() external view returns (address);
 
-    /// @notice Max allowed value loss (in basis points) when increasing a position, while in lockdown mode.
+    /// @notice Max allowed value loss (in basis points) when increasing a position while in WALLED mode.
     function maxPositionIncreaseLossBps() external view returns (uint256);
 
-    /// @notice Max allowed value loss (in basis points) when decreasing a position, while in lockdown mode.
+    /// @notice Max allowed value loss (in basis points) when decreasing a position while in WALLED mode.
     function maxPositionDecreaseLossBps() external view returns (uint256);
 
+    /// @notice Cooldown duration for instruction executions in seconds.
+    function instrCooldownDuration() external view returns (uint256);
+
     /// @notice Prices a position.
-    /// @dev If the position value goes to zero, it is closed.
     /// @param instruction The accounting instruction.
     /// @return value The new position value.
     function accountForPosition(Instruction calldata instruction) external returns (uint256 value);
@@ -81,10 +82,10 @@ interface IWeirollComponent {
     /// @notice Manages a position's state through paired management and accounting instructions.
     /// @dev If `acctInstruction` is provided, it is executed before and after the management instruction to
     /// compute the new position value and its signed delta.
-    /// @dev In lockdown mode, `acctInstruction` must be provided and value preservation checks are applied using
+    /// @dev In WALLED mode, `acctInstruction` must be provided and value preservation checks are applied using
     /// a validation matrix to prevent economic inconsistencies between position changes and token flows.
     ///
-    /// The lockdown mode matrix evaluates three factors to determine required validations:
+    /// The WALLED mode matrix evaluates three factors to determine required validations:
     /// - Affected Tokens flow - Sign of the change in the Safe's aggregate value of `mgmtInstruction.affectedTokens`
     /// - Debt Position - Whether position represents protocol liability (true) vs asset (false)
     /// - Position Δ direction - Direction of position value change (increase/decrease/null)
@@ -139,11 +140,15 @@ interface IWeirollComponent {
     /// @param newAccountingCurrency The new currency.
     function setAccountingCurrency(address newAccountingCurrency) external;
 
-    /// @notice Sets the max allowed value loss for position increases.
-    /// @param newMaxPositionIncreaseLossBps The new max value loss in basis points.
+    /// @notice Sets the maximum allowed relative value loss for position increases while in WALLED mode.
+    /// @param newMaxPositionIncreaseLossBps The new maximum value loss in basis points.
     function setMaxPositionIncreaseLossBps(uint256 newMaxPositionIncreaseLossBps) external;
 
-    /// @notice Sets the max allowed value loss for position decreases.
-    /// @param newMaxPositionDecreaseLossBps The new max value loss in basis points.
+    /// @notice Sets the maximum allowed relative value loss for position decreases while in WALLED mode.
+    /// @param newMaxPositionDecreaseLossBps The new maximum value loss in basis points.
     function setMaxPositionDecreaseLossBps(uint256 newMaxPositionDecreaseLossBps) external;
+
+    /// @notice Sets the cooldown duration for instruction executions while in WALLED mode.
+    /// @param newInstrCooldownDuration The new cooldown duration in seconds.
+    function setInstrCooldownDuration(uint256 newInstrCooldownDuration) external;
 }

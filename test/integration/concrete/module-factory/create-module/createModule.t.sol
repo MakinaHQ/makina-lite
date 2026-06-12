@@ -6,6 +6,7 @@ import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessMana
 import {Errors as OZErrors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 import {Errors} from "src/libraries/Errors.sol";
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {IModuleFactory} from "src/interfaces/IModuleFactory.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
@@ -62,10 +63,13 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
                     IMakinaLiteModule.MakinaLiteModuleInitParams({
                         safe: address(safe),
                         initialProvider: dao,
+                        initialOperatingMode: IMakinaLiteGovernable.OperatingMode.OPEN,
                         initialAllowedInstrRoot: initialAllowedInstrRoot,
                         initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
                         initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
+                        initialInstrCooldownDuration: DEFAULT_INSTR_COOLDOWN_DURATION,
                         initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
+                        initialSwapCooldownDuration: DEFAULT_SWAP_COOLDOWN_DURATION,
                         initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
                     salt,

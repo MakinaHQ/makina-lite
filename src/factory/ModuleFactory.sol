@@ -21,7 +21,9 @@ contract ModuleFactory layout at erc7201("makina.storage.ModuleFactory")
     /// @inheritdoc IModuleFactory
     mapping(address module => bool isModule) public isMakinaLiteModule;
 
-    constructor(address _registry) MakinaLiteContext(_registry) {}
+    constructor(address _registry) MakinaLiteContext(_registry) {
+        _disableInitializers();
+    }
 
     function initialize(address initialAuthority) external initializer {
         __AccessManaged_init(initialAuthority);

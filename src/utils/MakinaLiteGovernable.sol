@@ -26,15 +26,19 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     bool public override suspendedByProvider;
 
     /// @inheritdoc IMakinaLiteGovernable
-    bool public override lockdownMode;
+    OperatingMode public override operatingMode;
 
-    function __MakinaLiteGovernable_init(address _safe, address _provider) internal onlyInitializing {
+    function __MakinaLiteGovernable_init(address _safe, address _provider, OperatingMode _initialOperatingMode)
+        internal
+        onlyInitializing
+    {
         if (_safe == address(0)) {
             revert Errors.ZeroAddress();
         }
         safe = _safe;
         _addGuardian(_safe);
         _setProvider(_provider);
+        _setOperatingMode(_initialOperatingMode);
     }
 
     modifier onlySafe() {
@@ -121,15 +125,12 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     }
 
     /// @inheritdoc IMakinaLiteGovernable
-    function setLockdownMode(bool enabled) external onlySafe {
-        if (lockdownMode != enabled) {
-            emit LockdownModeChanged(enabled);
-            lockdownMode = enabled;
-        }
+    function setOperatingMode(OperatingMode newMode) external override onlySafe {
+        _setOperatingMode(newMode);
     }
 
     /// @inheritdoc IMakinaLiteGovernable
-    function suspend() external onlyProvider {
+    function suspend() external override onlyProvider {
         if (!suspendedByProvider) {
             emit Suspended();
             suspendedByProvider = true;
@@ -137,7 +138,7 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     }
 
     /// @inheritdoc IMakinaLiteGovernable
-    function unsuspend() external onlyProvider {
+    function unsuspend() external override onlyProvider {
         if (suspendedByProvider) {
             emit Unsuspended();
             suspendedByProvider = false;
@@ -145,7 +146,7 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     }
 
     /// @inheritdoc IMakinaLiteGovernable
-    function pause() external onlyGuardian {
+    function pause() external override onlyGuardian {
         if (!paused) {
             emit Paused(msg.sender);
             paused = true;
@@ -153,7 +154,7 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     }
 
     /// @inheritdoc IMakinaLiteGovernable
-    function unpause() external onlyGuardian {
+    function unpause() external override onlyGuardian {
         if (paused) {
             emit Unpaused(msg.sender);
             paused = false;
@@ -170,5 +171,11 @@ abstract contract MakinaLiteGovernable is Initializable, IMakinaLiteGovernable {
     function _addGuardian(address newGuardian) internal {
         isGuardian[newGuardian] = true;
         emit GuardianAdded(newGuardian);
+    }
+
+    /// @dev Internal logic to update the operating mode.
+    function _setOperatingMode(OperatingMode newMode) internal {
+        emit OperatingModeChanged(newMode);
+        operatingMode = newMode;
     }
 }

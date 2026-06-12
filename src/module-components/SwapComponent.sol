@@ -12,13 +12,17 @@ abstract contract SwapComponent is ISwapComponent {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
-    /// @dev Full scale value in basis points
+    /// @dev Full scale value in basis points.
     uint256 private constant MAX_BPS = 10_000;
 
     mapping(uint16 swapperId => SwapperTargets targets) private _swapperTargets;
+    uint256 private _lastGuardedSwapTimestamp;
 
     /// @inheritdoc ISwapComponent
     uint256 public maxSwapLossBps;
+
+    /// @inheritdoc ISwapComponent
+    uint256 public swapCooldownDuration;
 
     /// @inheritdoc ISwapComponent
     uint256 public swapFeeRate;
@@ -34,7 +38,7 @@ abstract contract SwapComponent is ISwapComponent {
     }
 
     /// @dev Internal logic to swap tokens using a given swapper.
-    function _swap(SwapOrder calldata order, bool lockdownMode) internal returns (uint256) {
+    function _swap(SwapOrder calldata order, bool guarded) internal returns (uint256) {
         SwapperTargets storage targets = _swapperTargets[order.swapperId];
         address approvalTarget = targets.approvalTarget;
         address executionTarget = targets.executionTarget;
@@ -59,7 +63,9 @@ abstract contract SwapComponent is ISwapComponent {
             revert Errors.AmountOutTooLow();
         }
 
-        if (lockdownMode) {
+        if (guarded) {
+            _checkAndSetCooldown();
+
             uint256 valOut = _valueOf(order.outputToken, order.inputToken, outputAmount);
             if (valOut < order.inputAmount.mulDiv(MAX_BPS - maxSwapLossBps, MAX_BPS, Math.Rounding.Ceil)) {
                 revert Errors.MaxValueLossExceeded();
@@ -71,10 +77,16 @@ abstract contract SwapComponent is ISwapComponent {
         return outputAmount;
     }
 
-    /// @dev Internal logic to set the maximum allowed value loss (in basis points) for token swaps while in lockdown mode.
+    /// @dev Internal logic to set the maximum allowed relative value loss for token swaps.
     function _setMaxSwapLossBps(uint256 newMaxSwapLossBps) internal {
         emit MaxSwapLossBpsChanged(maxSwapLossBps, newMaxSwapLossBps);
         maxSwapLossBps = newMaxSwapLossBps;
+    }
+
+    /// @dev Internal logic to set the swap cooldown duration.
+    function _setSwapCooldownDuration(uint256 newSwapCooldownDuration) internal {
+        emit SwapCooldownDurationChanged(swapCooldownDuration, newSwapCooldownDuration);
+        swapCooldownDuration = newSwapCooldownDuration;
     }
 
     /// @dev Internal logic to set the swap fee rate.
@@ -87,6 +99,15 @@ abstract contract SwapComponent is ISwapComponent {
     function _setSwapperTargets(uint16 swapperId, address approvalTarget, address executionTarget) internal {
         _swapperTargets[swapperId] = SwapperTargets(approvalTarget, executionTarget);
         emit SwapperTargetsSet(swapperId, approvalTarget, executionTarget);
+    }
+
+    /// @dev Checks cooldown for swaps and updates the last guarded swap timestamp.
+    function _checkAndSetCooldown() internal {
+        uint256 timestamp = block.timestamp;
+        if (timestamp - _lastGuardedSwapTimestamp < swapCooldownDuration && _lastGuardedSwapTimestamp != 0) {
+            revert Errors.OngoingCooldown();
+        }
+        _lastGuardedSwapTimestamp = timestamp;
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.

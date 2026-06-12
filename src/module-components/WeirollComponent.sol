@@ -36,6 +36,8 @@ abstract contract WeirollComponent is IWeirollComponent {
     bytes32 private constant IS_MANAGING_FLASHLOAN_SLOT =
         0x8af85af09dfd26c2dc59ce2f32b0ca3422706a314bdc173e6610c5138eba2b00;
 
+    mapping(bytes32 executionHash => uint256 timestamp) private _lastGuardedExecTimestamps;
+
     /// @inheritdoc IWeirollComponent
     address public immutable weirollVm;
 
@@ -51,6 +53,9 @@ abstract contract WeirollComponent is IWeirollComponent {
     /// @inheritdoc IWeirollComponent
     uint256 public maxPositionDecreaseLossBps;
 
+    /// @inheritdoc IWeirollComponent
+    uint256 public instrCooldownDuration;
+
     constructor(address _weirollVm) {
         weirollVm = _weirollVm;
     }
@@ -59,7 +64,7 @@ abstract contract WeirollComponent is IWeirollComponent {
     function _managePosition(
         Instruction calldata mgmtInstruction,
         Instruction calldata acctInstruction,
-        bool lockdownMode,
+        bool guarded,
         address safe
     ) internal returns (uint256 value, int256 change) {
         uint256 posId = mgmtInstruction.positionId;
@@ -82,12 +87,12 @@ abstract contract WeirollComponent is IWeirollComponent {
                 revert Errors.InstructionsMismatch();
             }
             valueBefore = _accountForPosition(acctInstruction, true, safe);
-        } else if (lockdownMode) {
+        } else if (guarded) {
             revert Errors.AccountingMandatory();
         }
 
         uint256 affectedTokensValueBefore;
-        if (lockdownMode) {
+        if (guarded) {
             affectedTokensValueBefore = _aggregateTokensValue(mgmtInstruction.affectedTokens, safe);
         }
 
@@ -97,10 +102,13 @@ abstract contract WeirollComponent is IWeirollComponent {
             value = _accountForPosition(acctInstruction, false, safe);
             change = int256(value) - int256(valueBefore);
 
-            if (lockdownMode) {
+            if (guarded) {
                 uint256 affectedTokensValueAfter = _aggregateTokensValue(mgmtInstruction.affectedTokens, safe);
 
                 bool isPositionIncrease = change > 0;
+
+                _checkAndSetCooldown(keccak256(abi.encodePacked(posId, mgmtInstruction.commands, isPositionIncrease)));
+
                 uint256 absChange = isPositionIncrease ? uint256(change) : uint256(-change);
                 uint256 maxLossBps = isPositionIncrease ? maxPositionIncreaseLossBps : maxPositionDecreaseLossBps;
 
@@ -122,7 +130,7 @@ abstract contract WeirollComponent is IWeirollComponent {
         MANAGED_POSITION_ID_SLOT.asUint256().tstore(0);
         IS_MANAGED_POSITION_DEBT_SLOT.asBoolean().tstore(false);
 
-        emit PositionManaged(acctInstructionProvided, lockdownMode, posId, value);
+        emit PositionManaged(acctInstructionProvided, guarded, posId, value);
     }
 
     /// @dev Manages and refunds flash loan funds.
@@ -278,7 +286,7 @@ abstract contract WeirollComponent is IWeirollComponent {
     }
 
     /// @dev Computes a hash of the state array, selectively including elements as specified by a bitmap.
-    ///      This enables a weiroll script to have both fixed and variable parameters.
+    ///      This enables a Weiroll script to have both fixed and variable parameters.
     /// @param state The state array to hash.
     /// @param bitmap The bitmap where each bit determines whether the corresponding element in state is included or ignored in the hash computation.
     /// @return hash The hash of the state array.
@@ -300,7 +308,7 @@ abstract contract WeirollComponent is IWeirollComponent {
         return keccak256(hashInput);
     }
 
-    /// @dev Computes the total value of the tokens balances held by safe, priced in given currency.
+    /// @dev Computes the total value of the token balances held by the Safe, priced in given currency.
     function _aggregateTokensValue(address[] calldata tokens, address safe) internal view returns (uint256) {
         uint256 totalValue;
         uint256 atLen = tokens.length;
@@ -323,16 +331,22 @@ abstract contract WeirollComponent is IWeirollComponent {
         accountingCurrency = newAccountingCurrency;
     }
 
-    /// @dev Internal logic to set the max allowed value loss for position increases.
+    /// @dev Internal logic to set the maximum allowed relative value loss for position increases.
     function _setMaxPositionIncreaseLossBps(uint256 newMaxPositionIncreaseLossBps) internal {
         emit MaxPositionIncreaseLossBpsChanged(maxPositionIncreaseLossBps, newMaxPositionIncreaseLossBps);
         maxPositionIncreaseLossBps = newMaxPositionIncreaseLossBps;
     }
 
-    /// @dev Internal logic to set the max allowed value loss for position decreases.
+    /// @dev Internal logic to set the maximum allowed relative value loss for position decreases.
     function _setMaxPositionDecreaseLossBps(uint256 newMaxPositionDecreaseLossBps) internal {
         emit MaxPositionDecreaseLossBpsChanged(maxPositionDecreaseLossBps, newMaxPositionDecreaseLossBps);
         maxPositionDecreaseLossBps = newMaxPositionDecreaseLossBps;
+    }
+
+    /// @dev Internal logic to set the cooldown duration for instruction executions.
+    function _setInstrCooldownDuration(uint256 newInstrCooldownDuration) internal {
+        emit InstrCooldownDurationChanged(instrCooldownDuration, newInstrCooldownDuration);
+        instrCooldownDuration = newInstrCooldownDuration;
     }
 
     /// @dev Instructs the Safe to execute a set of commands via a delegatecall to the Weiroll VM.
@@ -350,6 +364,18 @@ abstract contract WeirollComponent is IWeirollComponent {
             );
         returnData = Address.verifyCallResult(success, returnData);
         return abi.decode(returnData, (bytes[]));
+    }
+
+    /// @dev Checks cooldown for a given guarded execution and updates its last timestamp.
+    function _checkAndSetCooldown(bytes32 executionHash) internal {
+        uint256 timestamp = block.timestamp;
+        if (
+            timestamp - _lastGuardedExecTimestamps[executionHash] < instrCooldownDuration
+                && _lastGuardedExecTimestamps[executionHash] != 0
+        ) {
+            revert Errors.OngoingCooldown();
+        }
+        _lastGuardedExecTimestamps[executionHash] = timestamp;
     }
 
     /// @dev Returns the value of `baseTokenAmount` of `baseToken` denominated in `quoteToken`, using the registered price route.

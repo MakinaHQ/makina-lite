@@ -2,6 +2,7 @@
 pragma solidity 0.8.35;
 
 import {IBridgeComponent} from "src/interfaces/IBridgeComponent.sol";
+import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 
 import {Errors} from "src/libraries/Errors.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
@@ -101,36 +102,28 @@ contract SendOutBridgeTransfer_Integration_Concrete_Test is BridgeComponent_Inte
         makinaLiteModule.sendOutBridgeTransfer(order);
     }
 
-    function test_RevertGiven_RecipientNotWhitelisted_WhileInLockdownMode() public whileInLockdownMode {
-        IBridgeComponent.BridgeOrder memory order;
-        order.bridgeId = CCTP_V2_BRIDGE_ID;
-        order.destinationChainId = L2_CHAIN_ID;
-        order.recipient = address(safe);
-        order.inputToken = address(tokenA);
-
-        vm.expectRevert(Errors.RecipientNotWhitelisted.selector);
-        vm.prank(operator);
-        makinaLiteModule.sendOutBridgeTransfer(order);
+    function test_RevertGiven_OngoingCooldown_WhileInFencedMode() public {
+        _test_RevertGiven_OngoingCooldown_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode.FENCED);
     }
 
-    function test_RevertGiven_MaxValueLossExceeded_WhileInLockdownMode() public whileInLockdownMode {
-        uint256 inputAmount = 3e18;
-        deal(address(tokenA), address(safe), inputAmount, true);
+    function test_RevertGiven_OngoingCooldown_WhileInWalledMode() public {
+        _test_RevertGiven_OngoingCooldown_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode.WALLED);
+    }
 
-        IBridgeComponent.BridgeOrder memory order;
-        order.bridgeId = CCTP_V2_BRIDGE_ID;
-        order.destinationChainId = L2_CHAIN_ID;
-        order.recipient = address(safe);
-        order.inputToken = address(tokenA);
-        order.inputAmount = inputAmount;
-        order.minOutputAmount = (inputAmount * (10_000 - DEFAULT_MAX_BRIDGE_LOSS_BPS) / 10_000) - 1;
+    function test_RevertGiven_RecipientNotWhitelisted_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_RecipientNotWhitelisted_WhileInNonOpenMode();
+    }
 
-        vm.prank(address(safe));
-        makinaLiteModule.addRecipient(L2_CHAIN_ID, address(safe));
+    function test_RevertGiven_RecipientNotWhitelisted_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_RecipientNotWhitelisted_WhileInNonOpenMode();
+    }
 
-        vm.expectRevert(Errors.MaxValueLossExceeded.selector);
-        vm.prank(operator);
-        makinaLiteModule.sendOutBridgeTransfer(order);
+    function test_RevertGiven_MaxValueLossExceeded_WhileInFencedMode() public whileInFencedMode {
+        _test_RevertGiven_MaxValueLossExceeded_WhileInNonOpenMode();
+    }
+
+    function test_RevertGiven_MaxValueLossExceeded_WhileInWalledMode() public whileInWalledMode {
+        _test_RevertGiven_MaxValueLossExceeded_WhileInNonOpenMode();
     }
 
     function test_SendOutBridgeTransfer_AcrossV4() public {
@@ -151,7 +144,7 @@ contract SendOutBridgeTransfer_Integration_Concrete_Test is BridgeComponent_Inte
             inputToken: address(tokenA),
             inputAmount: inputAmount,
             minOutputAmount: minOutputAmount,
-            extraData: abi.encode(outputToken, address(safe), ACROSS_V4_FILL_DEADLINE_OFFSET)
+            extraData: abi.encode(outputToken, ACROSS_V4_FILL_DEADLINE_OFFSET)
         });
 
         uint256 transferId = acrossV4SpokePool.numberOfDeposits();
@@ -295,5 +288,78 @@ contract SendOutBridgeTransfer_Integration_Concrete_Test is BridgeComponent_Inte
         assertEq(tokenA.balanceOf(address(safe)), 0);
         assertEq(tokenA.balanceOf(address(makinaLiteModule)), 0);
         assertEq(tokenA.totalSupply(), 0);
+    }
+
+    function _test_RevertGiven_OngoingCooldown_WhileInNonOpenMode(IMakinaLiteGovernable.OperatingMode mode) internal {
+        vm.prank(address(safe));
+        makinaLiteModule.addRecipient(L2_CHAIN_ID, address(safe));
+
+        uint256 inputAmount = 1e18;
+        uint256 minOutputAmount = (inputAmount * (10_000 - DEFAULT_MAX_BRIDGE_LOSS_BPS) / 10_000);
+
+        deal(address(tokenA), address(safe), 3 * inputAmount, true);
+
+        IBridgeComponent.BridgeOrder memory order = IBridgeComponent.BridgeOrder({
+            bridgeId: CCTP_V2_BRIDGE_ID,
+            destinationChainId: L2_CHAIN_ID,
+            recipient: address(safe),
+            inputToken: address(tokenA),
+            inputAmount: inputAmount,
+            minOutputAmount: minOutputAmount,
+            extraData: abi.encode(CCTP_V2_CONFIRMED_FINALITY_THRESHOLD)
+        });
+
+        // set a bridge cooldown duration
+        vm.prank(address(safe));
+        makinaLiteModule.setBridgeCooldownDuration(1 minutes);
+
+        // send one transfer while in open mode
+        vm.prank(operator);
+        makinaLiteModule.sendOutBridgeTransfer(order);
+
+        // change operation mode
+        vm.prank(address(safe));
+        makinaLiteModule.setOperatingMode(mode);
+
+        vm.startPrank(operator);
+
+        // send a transfer to trigger cooldown
+        makinaLiteModule.sendOutBridgeTransfer(order);
+
+        // try sending another transfer while cooldown is ongoing
+        vm.expectRevert(Errors.OngoingCooldown.selector);
+        makinaLiteModule.sendOutBridgeTransfer(order);
+    }
+
+    function _test_RevertGiven_RecipientNotWhitelisted_WhileInNonOpenMode() internal {
+        IBridgeComponent.BridgeOrder memory order;
+        order.bridgeId = CCTP_V2_BRIDGE_ID;
+        order.destinationChainId = L2_CHAIN_ID;
+        order.recipient = address(safe);
+        order.inputToken = address(tokenA);
+
+        vm.expectRevert(Errors.RecipientNotWhitelisted.selector);
+        vm.prank(operator);
+        makinaLiteModule.sendOutBridgeTransfer(order);
+    }
+
+    function _test_RevertGiven_MaxValueLossExceeded_WhileInNonOpenMode() internal {
+        uint256 inputAmount = 3e18;
+        deal(address(tokenA), address(safe), inputAmount, true);
+
+        IBridgeComponent.BridgeOrder memory order;
+        order.bridgeId = CCTP_V2_BRIDGE_ID;
+        order.destinationChainId = L2_CHAIN_ID;
+        order.recipient = address(safe);
+        order.inputToken = address(tokenA);
+        order.inputAmount = inputAmount;
+        order.minOutputAmount = (inputAmount * (10_000 - DEFAULT_MAX_BRIDGE_LOSS_BPS) / 10_000) - 1;
+
+        vm.prank(address(safe));
+        makinaLiteModule.addRecipient(L2_CHAIN_ID, address(safe));
+
+        vm.expectRevert(Errors.MaxValueLossExceeded.selector);
+        vm.prank(operator);
+        makinaLiteModule.sendOutBridgeTransfer(order);
     }
 }

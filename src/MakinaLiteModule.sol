@@ -45,7 +45,7 @@ contract MakinaLiteModule is
 
     /// @inheritdoc IMakinaLiteModule
     function initialize(MakinaLiteModuleInitParams calldata params) external override initializer {
-        __MakinaLiteGovernable_init(params.safe, params.initialProvider);
+        __MakinaLiteGovernable_init(params.safe, params.initialProvider, params.initialOperatingMode);
 
         _setAllowedInstrRoot(params.initialAllowedInstrRoot);
 
@@ -55,11 +55,15 @@ contract MakinaLiteModule is
         _checkBps(params.initialMaxPositionDecreaseLossBps);
         _setMaxPositionDecreaseLossBps(params.initialMaxPositionDecreaseLossBps);
 
+        _setInstrCooldownDuration(params.initialInstrCooldownDuration);
+
         _checkBps(params.initialMaxSwapLossBps);
         _setMaxSwapLossBps(params.initialMaxSwapLossBps);
 
         _checkFeeRate(params.initialSwapFeeRate);
         _setSwapFeeRate(params.initialSwapFeeRate);
+
+        _setSwapCooldownDuration(params.initialSwapCooldownDuration);
     }
 
     receive() external payable {}
@@ -71,7 +75,7 @@ contract MakinaLiteModule is
         uint256 stalenessThreshold1,
         address feed2,
         uint256 stalenessThreshold2
-    ) external override onlySafe {
+    ) external override nonReentrant onlySafe {
         _setFeedRoute(token, feed1, stalenessThreshold1, feed2, stalenessThreshold2);
     }
 
@@ -120,7 +124,7 @@ contract MakinaLiteModule is
         IWeirollComponent.Instruction calldata mgmtInstruction,
         IWeirollComponent.Instruction calldata acctInstruction
     ) external override nonReentrant whenOperational onlyOperator returns (uint256, int256) {
-        return _managePosition(mgmtInstruction, acctInstruction, lockdownMode, safe);
+        return _managePosition(mgmtInstruction, acctInstruction, operatingMode == OperatingMode.WALLED, safe);
     }
 
     /// @inheritdoc IWeirollComponent
@@ -137,7 +141,8 @@ contract MakinaLiteModule is
         int256[] memory changes = new int256[](len);
 
         for (uint256 i; i < len; ++i) {
-            (values[i], changes[i]) = _managePosition(mgmtInstructions[i], acctInstructions[i], lockdownMode, safe);
+            (values[i], changes[i]) =
+                _managePosition(mgmtInstructions[i], acctInstructions[i], operatingMode == OperatingMode.WALLED, safe);
         }
 
         return (values, changes);
@@ -174,7 +179,7 @@ contract MakinaLiteModule is
     }
 
     /// @inheritdoc IWeirollComponent
-    function setAccountingCurrency(address newAccountingCurrency) external override onlySafe {
+    function setAccountingCurrency(address newAccountingCurrency) external override nonReentrant onlySafe {
         if (!isFeedRouteRegistered(newAccountingCurrency)) {
             revert Errors.PriceFeedRouteNotRegistered(newAccountingCurrency);
         }
@@ -193,6 +198,11 @@ contract MakinaLiteModule is
         _setMaxPositionDecreaseLossBps(newMaxPositionDecreaseLossBps);
     }
 
+    /// @inheritdoc IWeirollComponent
+    function setInstrCooldownDuration(uint256 newInstrCooldownDuration) external override onlySafe {
+        _setInstrCooldownDuration(newInstrCooldownDuration);
+    }
+
     /// @inheritdoc ISwapComponent
     function swap(ISwapComponent.SwapOrder calldata order) external override nonReentrant whenOperational onlyOperator {
         _swapForSafe(order);
@@ -202,6 +212,11 @@ contract MakinaLiteModule is
     function setMaxSwapLossBps(uint256 newMaxSwapLossBps) external override onlySafe {
         _checkBps(newMaxSwapLossBps);
         _setMaxSwapLossBps(newMaxSwapLossBps);
+    }
+
+    /// @inheritdoc ISwapComponent
+    function setSwapCooldownDuration(uint256 newSwapCooldownDuration) external override onlySafe {
+        _setSwapCooldownDuration(newSwapCooldownDuration);
     }
 
     /// @inheritdoc ISwapComponent
@@ -216,6 +231,9 @@ contract MakinaLiteModule is
         override
         onlySafe
     {
+        if (executionTarget == safe || approvalTarget == safe) {
+            revert Errors.InvalidTarget();
+        }
         _setSwapperTargets(swapperId, approvalTarget, executionTarget);
     }
 
@@ -229,13 +247,18 @@ contract MakinaLiteModule is
     {
         address encoder = IMakinaLiteRegistry(registry).getBridgeEncoder(order.bridgeId);
         _pullERC20FromSafe(order.inputToken, order.inputAmount, address(this));
-        _sendOutBridgeTransfer(order, encoder, lockdownMode);
+        _sendOutBridgeTransfer(order, encoder, operatingMode != OperatingMode.OPEN);
     }
 
     /// @inheritdoc IBridgeComponent
-    function setMaxBridgeLossBps(uint16 bridgeId, uint256 maxBridgeLossBps) external override onlySafe {
-        _checkBps(maxBridgeLossBps);
-        _setMaxBridgeLossBps(bridgeId, maxBridgeLossBps);
+    function setMaxBridgeLossBps(uint16 bridgeId, uint256 newMaxBridgeLossBps) external override onlySafe {
+        _checkBps(newMaxBridgeLossBps);
+        _setMaxBridgeLossBps(bridgeId, newMaxBridgeLossBps);
+    }
+
+    /// @inheritdoc IBridgeComponent
+    function setBridgeCooldownDuration(uint256 newBridgeCooldownDuration) external override onlySafe {
+        _setBridgeCooldownDuration(newBridgeCooldownDuration);
     }
 
     /// @inheritdoc IBridgeComponent
@@ -262,11 +285,11 @@ contract MakinaLiteModule is
         }
     }
 
-    /// @dev Internal logic to execute token swaps on behalf of Safe using a given swapper.
+    /// @dev Internal logic to execute token swaps on behalf of the Safe using a given swapper.
     function _swapForSafe(ISwapComponent.SwapOrder calldata order) internal {
         _pullERC20FromSafe(order.inputToken, order.inputAmount, address(this));
 
-        uint256 amountOut = _swap(order, lockdownMode);
+        uint256 amountOut = _swap(order, operatingMode != OperatingMode.OPEN);
 
         uint256 fee = _chargeSwapFee(order.outputToken, amountOut);
 
@@ -299,7 +322,7 @@ contract MakinaLiteModule is
         _pullERC20FromSafe(token, amount, flashLoanModule);
     }
 
-    /// @dev Transfers `amount` of ERC20 `token` from the Safe to this module via a module call.
+    /// @dev Transfers `amount` of ERC20 `token` from the Safe to the given recipient via a module call.
     function _pullERC20FromSafe(address token, uint256 amount, address recipient) internal {
         if (token.code.length == 0) {
             revert Errors.InvalidInputToken();

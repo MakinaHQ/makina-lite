@@ -25,6 +25,7 @@ library Errors {
     error InvalidInstructionType();
     error InvalidLzSentAmount();
     error InvalidPositionChangeDirection();
+    error InvalidTarget();
     error LzEndpointIdNotRegistered();
     error ManageFlashLoanReentrantCall();
     error MaxValueLossExceeded();
@@ -38,6 +39,7 @@ library Errors {
     error OftAlreadyRegistered();
     error OftMismatch();
     error OftNotRegistered();
+    error OngoingCooldown();
     error Paused();
     error ProtectedCctpDomain();
     error ProtectedChainId();
@@ -58,6 +60,5 @@ library Errors {
     error ZeroChainId();
     error ZeroLzEndpointId();
     error ZeroPositionId();
-    error ZeroRefundAddress();
     error ZeroSalt();
 }
