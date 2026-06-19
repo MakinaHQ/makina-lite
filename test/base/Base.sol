@@ -29,12 +29,23 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         address morpho;
     }
 
-    function deployMakinaLiteInfra(address _accessManager, address _weirollVM, FlashLoanProviders memory flProviders)
-        internal
-        returns (MakinaLiteInfra memory deployment)
-    {
+    function deployMakinaLiteInfra(
+        address _accessManager,
+        address _weirollVM,
+        FlashLoanProviders memory flProviders,
+        address _defaultProvider,
+        uint256 _defaultSwapFeeRate,
+        bool _freeDeployment
+    ) internal returns (MakinaLiteInfra memory deployment) {
         deployment.registry = _deployMakinaLiteRegistry(_accessManager, _accessManager);
-        deployment.moduleFactory = _deployModuleFactory(_accessManager, _accessManager, address(deployment.registry));
+        deployment.moduleFactory = _deployModuleFactory(
+            _accessManager,
+            _accessManager,
+            address(deployment.registry),
+            _defaultProvider,
+            _defaultSwapFeeRate,
+            _freeDeployment
+        );
         deployment.makinaLiteModuleImplem = _deployMakinaLiteModuleImplem(address(deployment.registry), _weirollVM);
         deployment.flashLoanModule = _deployFlashLoanModule(address(deployment.moduleFactory), flProviders);
     }
@@ -70,9 +81,20 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         IAccessManager(accessManager)
             .setTargetFunctionRole(address(deployment.registry), registrySetterSelectors, Roles.INFRA_CONFIG_ROLE);
 
-        // ModuleFactory setters
-        bytes4[] memory factorySetterSelectors = new bytes4[](1);
-        factorySetterSelectors[0] = ModuleFactory.createModule.selector;
+        bytes4[] memory factoryDeploySelectors = new bytes4[](1);
+        factoryDeploySelectors[0] = ModuleFactory.createModule.selector;
+        IAccessManager(accessManager)
+            .setTargetFunctionRole(
+                address(deployment.moduleFactory), factoryDeploySelectors, Roles.STRATEGY_DEPLOYMENT_ROLE
+            );
+
+        // ModuleFactory config setters
+        bytes4[] memory factoryConfigSelectors = new bytes4[](3);
+        factoryConfigSelectors[0] = ModuleFactory.setDefaultProvider.selector;
+        factoryConfigSelectors[1] = ModuleFactory.setDefaultSwapFeeRate.selector;
+        factoryConfigSelectors[2] = ModuleFactory.setFreeDeployment.selector;
+        IAccessManager(accessManager)
+            .setTargetFunctionRole(address(deployment.moduleFactory), factoryConfigSelectors, Roles.INFRA_CONFIG_ROLE);
     }
 
     function _deployMakinaLiteRegistry(address _proxyOwner, address _accessManager)
@@ -91,16 +113,27 @@ abstract contract Base is ProxyUtils, SaltDomains, IntegrationIds {
         );
     }
 
-    function _deployModuleFactory(address _proxyOwner, address _accessManager, address _registry)
-        internal
-        returns (ModuleFactory moduleFactory)
-    {
+    function _deployModuleFactory(
+        address _proxyOwner,
+        address _accessManager,
+        address _registry,
+        address _defaultProvider,
+        uint256 _defaultSwapFeeRate,
+        bool _freeDeployment
+    ) internal returns (ModuleFactory moduleFactory) {
         address implem = _deployCode(abi.encodePacked(type(ModuleFactory).creationCode, abi.encode(_registry)), 0);
         return ModuleFactory(
             _deployCode(
                 abi.encodePacked(
                     type(TransparentUpgradeableProxy).creationCode,
-                    abi.encode(implem, _proxyOwner, abi.encodeCall(ModuleFactory.initialize, (_accessManager)))
+                    abi.encode(
+                        implem,
+                        _proxyOwner,
+                        abi.encodeCall(
+                            ModuleFactory.initialize,
+                            (_accessManager, _defaultProvider, _defaultSwapFeeRate, _freeDeployment)
+                        )
+                    )
                 ),
                 MODULE_FACTORY_SALT_DOMAIN
             )

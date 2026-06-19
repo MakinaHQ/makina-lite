@@ -25,9 +25,9 @@ interface IMakinaLiteRegistry {
     /// @notice Bridge ID => Address of the corresponding bridge encoder.
     function getBridgeEncoder(uint16 bridgeId) external view returns (address);
 
-    /// @notice Sets the address of the MakinaLite factory.
-    /// @param factory The address of the MakinaLite factory.
-    function setModuleFactory(address factory) external;
+    /// @notice Sets the address of the MakinaLiteModule factory.
+    /// @param newModuleFactory The address of the new MakinaLiteModule factory.
+    function setModuleFactory(address newModuleFactory) external;
 
     /// @notice Sets the MakinaLiteModule implementation for future deployments.
     /// @param newImplementation The address of the new implementation contract.
