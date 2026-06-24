@@ -164,6 +164,11 @@ The `MakinaLiteRegistry` contract stores addresses of shared protocol components
 
 The `ModuleFactory` deploys new `MakinaLiteModule` instances as [ERC-1167](https://eips.ethereum.org/EIPS/eip-1167) minimal clones. Each clone is initialized with the provided parameters and tracked by the factory.
 
+There are two ways to deploy a module:
+
+- **Permissioned** (`createModule`): restricted to authorized deployers, who provide all parameters.
+- **Permissionless** (`createModuleFree`): open to anyone, with default provider and swap fee rate enforced by the factory.
+
 ### Access Control
 
 The MakinaLite protocol uses two access control systems:
@@ -175,7 +180,7 @@ The MakinaLite protocol uses two access control systems:
 Roles used by MakinaLite infrastructure contracts are a subset of those used in Makina Core contracts, and are defined as follows:
 
 - `ADMIN_ROLE` - roleId `0` - Super admin of the Access Manager. Authorized to perform Access Manager configuration actions.
-- `INFRA_CONFIG_ROLE` - roleId `1` - Authorized to configure the MakinaLite registry and bridge encoder contracts.
+- `INFRA_CONFIG_ROLE` - roleId `1` - Authorized to configure the MakinaLite registry, module factory, and bridge encoder contracts.
 - `STRATEGY_DEPLOYMENT_ROLE` - roleId `2` - Authorized to deploy new MakinaLite modules.
 - `INFRA_UPGRADE_ROLE` - roleId `6` - Authorized to upgrade proxies of the MakinaLite infrastructure contracts.
 - `GUARDIAN_ROLE` - roleId `7` - Authorized to cancel operations scheduled with the other roles.

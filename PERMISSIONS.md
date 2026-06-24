@@ -72,8 +72,13 @@ The following contracts use OpenZeppelin's `AccessManagedUpgradeable` with the `
 
 ### ModuleFactory
 
+- `INFRA_CONFIG_ROLE` (roleId `1`)
+  - Can set the default provider enforced for permissionless deployment.
+  - Can set the default swap fee rate enforced for permissionless deployment.
+  - Can enable or disable permissionless deployment.
+
 - `STRATEGY_DEPLOYMENT_ROLE` (roleId `2`)
-  - Can deploy new MakinaLiteModule clones.
+  - Can deploy new MakinaLiteModule clones with caller-provided service parameters.
 
 - `INFRA_UPGRADE_ROLE` (roleId `6`)
   - Can upgrade implementation via associated ProxyAdmin.

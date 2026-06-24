@@ -51,8 +51,14 @@ abstract contract Base_Test is Base, IRCodeReader, Constants, Test {
 
         safe = new MockSafe();
 
-        MakinaLiteInfra memory makinaLiteInfra =
-            deployMakinaLiteInfra(address(accessManager), weirollVM, FlashLoanProviders({morpho: address(morpho)}));
+        MakinaLiteInfra memory makinaLiteInfra = deployMakinaLiteInfra(
+            address(accessManager),
+            weirollVM,
+            FlashLoanProviders({morpho: address(morpho)}),
+            dao,
+            DEFAULT_SWAP_FEE_RATE,
+            false
+        );
         registry = makinaLiteInfra.registry;
         moduleFactory = makinaLiteInfra.moduleFactory;
         makinaLiteModuleImplem = makinaLiteInfra.makinaLiteModuleImplem;

@@ -58,8 +58,13 @@ contract DeployMakinaLite is Base, Script, CreateXUtils {
         address weirollVM = vm.parseJsonAddress(inputJson, ".weirollVM");
         FlashLoanProviders memory flProviders =
             FlashLoanProviders({morpho: vm.parseJsonAddress(inputJson, ".flashLoanProviders.morpho")});
+        address defaultProvider = vm.parseJsonAddress(inputJson, ".defaultProvider");
+        uint256 defaultSwapFeeRate = vm.parseJsonUint(inputJson, ".defaultSwapFeeRate");
+        bool freeDeployment = vm.parseJsonBool(inputJson, ".freeDeployment");
 
-        _infra = deployMakinaLiteInfra(accessManager, weirollVM, flProviders);
+        _infra = deployMakinaLiteInfra(
+            accessManager, weirollVM, flProviders, defaultProvider, defaultSwapFeeRate, freeDeployment
+        );
 
         _deployBridgeEncoders(accessManager);
     }

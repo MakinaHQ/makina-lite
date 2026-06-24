@@ -10,6 +10,7 @@ library Errors {
     error CctpDomainNotRegistered();
     error DirectManageFlashLoanCall();
     error ExceededMaxFee(uint256 fee, uint256 max);
+    error FreeDeploymentDisabled();
     error InstructionsMismatch();
     error InvalidAccounting();
     error InvalidBpsValue();

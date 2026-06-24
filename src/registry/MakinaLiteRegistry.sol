@@ -45,9 +45,9 @@ contract MakinaLiteRegistry layout at erc7201("makina.storage.MakinaLiteRegistry
     }
 
     /// @inheritdoc IMakinaLiteRegistry
-    function setModuleFactory(address factory) external restricted {
-        emit ModuleFactoryChanged(moduleFactory, factory);
-        moduleFactory = factory;
+    function setModuleFactory(address newModuleFactory) external restricted {
+        emit ModuleFactoryChanged(moduleFactory, newModuleFactory);
+        moduleFactory = newModuleFactory;
     }
 
     /// @inheritdoc IMakinaLiteRegistry

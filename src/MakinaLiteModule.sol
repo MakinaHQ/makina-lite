@@ -44,8 +44,11 @@ contract MakinaLiteModule is
     }
 
     /// @inheritdoc IMakinaLiteModule
-    function initialize(MakinaLiteModuleInitParams calldata params) external override initializer {
-        __MakinaLiteGovernable_init(params.safe, params.initialProvider, params.initialOperatingMode);
+    function initialize(
+        MakinaLiteModuleInitParams calldata params,
+        MakinaLiteModuleServiceParams calldata serviceParams
+    ) external override initializer {
+        __MakinaLiteGovernable_init(params.safe, serviceParams.initialProvider, params.initialOperatingMode);
 
         _setAllowedInstrRoot(params.initialAllowedInstrRoot);
 
@@ -60,8 +63,8 @@ contract MakinaLiteModule is
         _checkBps(params.initialMaxSwapLossBps);
         _setMaxSwapLossBps(params.initialMaxSwapLossBps);
 
-        _checkFeeRate(params.initialSwapFeeRate);
-        _setSwapFeeRate(params.initialSwapFeeRate);
+        _checkFeeRate(serviceParams.initialSwapFeeRate);
+        _setSwapFeeRate(serviceParams.initialSwapFeeRate);
 
         _setSwapCooldownDuration(params.initialSwapCooldownDuration);
     }

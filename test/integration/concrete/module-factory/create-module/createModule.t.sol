@@ -6,50 +6,56 @@ import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessMana
 import {Errors as OZErrors} from "@openzeppelin/contracts/utils/Errors.sol";
 
 import {Errors} from "src/libraries/Errors.sol";
-import {IMakinaLiteGovernable} from "src/interfaces/IMakinaLiteGovernable.sol";
 import {IMakinaLiteModule} from "src/interfaces/IMakinaLiteModule.sol";
 import {IModuleFactory} from "src/interfaces/IModuleFactory.sol";
 import {MakinaLiteModule} from "src/MakinaLiteModule.sol";
 
-import {Integration_Concrete_Test} from "../../IntegrationConcrete.t.sol";
+import {ModuleFactory_Integration_Concrete_Test} from "../ModuleFactory.t.sol";
 
-contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
+contract CreateModule_Integration_Concrete_Test is ModuleFactory_Integration_Concrete_Test {
     function test_RevertWhen_CallerWithoutRole() public {
         IMakinaLiteModule.MakinaLiteModuleInitParams memory params;
+        IMakinaLiteModule.MakinaLiteModuleServiceParams memory serviceParams;
 
         vm.expectRevert(abi.encodeWithSelector(IAccessManaged.AccessManagedUnauthorized.selector, address(this)));
-        moduleFactory.createModule(params, bytes32(0), 0);
+        moduleFactory.createModule(params, serviceParams, bytes32(0), 0);
     }
 
     function test_RevertWhen_ZeroSalt() public {
         IMakinaLiteModule.MakinaLiteModuleInitParams memory params;
+        IMakinaLiteModule.MakinaLiteModuleServiceParams memory serviceParams;
 
         vm.prank(dao);
         vm.expectRevert(Errors.ZeroSalt.selector);
-        moduleFactory.createModule(params, bytes32(0), 0);
+        moduleFactory.createModule(params, serviceParams, bytes32(0), 0);
     }
 
     function test_RevertWhen_SaltAlreadyUsed() public {
         IMakinaLiteModule.MakinaLiteModuleInitParams memory params;
+        IMakinaLiteModule.MakinaLiteModuleServiceParams memory serviceParams;
 
         vm.prank(dao);
         vm.expectRevert(OZErrors.FailedDeployment.selector);
-        moduleFactory.createModule(params, TEST_DEPLOYMENT_SALT, 0);
+        moduleFactory.createModule(params, serviceParams, TEST_DEPLOYMENT_SALT, 0);
     }
 
     function test_RevertWhen_ZeroSafe() public {
         IMakinaLiteModule.MakinaLiteModuleInitParams memory params;
+        IMakinaLiteModule.MakinaLiteModuleServiceParams memory serviceParams;
         bytes32 salt = bytes32(uint256(TEST_DEPLOYMENT_SALT) + 1);
 
         vm.prank(dao);
         vm.expectRevert(Errors.ZeroAddress.selector);
-        moduleFactory.createModule(params, salt, 0);
+        moduleFactory.createModule(params, serviceParams, salt, 0);
     }
 
     function test_CreateModule() public {
         bytes32 initialAllowedInstrRoot = bytes32("0x12345");
         bytes32 salt = bytes32(uint256(TEST_DEPLOYMENT_SALT) + 1);
         bytes32 referralKey = bytes32("referralKey");
+
+        IMakinaLiteModule.MakinaLiteModuleInitParams memory params = _defaultInitParams(address(safe));
+        params.initialAllowedInstrRoot = initialAllowedInstrRoot;
 
         address expectedModuleAddr =
             Clones.predictDeterministicAddress(makinaLiteModuleImplem, salt, address(moduleFactory));
@@ -60,17 +66,9 @@ contract CreateModule_Integration_Concrete_Test is Integration_Concrete_Test {
         vm.prank(dao);
         makinaLiteModule = MakinaLiteModule(
             payable(moduleFactory.createModule(
-                    IMakinaLiteModule.MakinaLiteModuleInitParams({
-                        safe: address(safe),
-                        initialProvider: dao,
-                        initialOperatingMode: IMakinaLiteGovernable.OperatingMode.OPEN,
-                        initialAllowedInstrRoot: initialAllowedInstrRoot,
-                        initialMaxPositionIncreaseLossBps: DEFAULT_MAX_POS_INCREASE_LOSS_BPS,
-                        initialMaxPositionDecreaseLossBps: DEFAULT_MAX_POS_DECREASE_LOSS_BPS,
-                        initialInstrCooldownDuration: DEFAULT_INSTR_COOLDOWN_DURATION,
-                        initialMaxSwapLossBps: DEFAULT_MAX_SWAP_LOSS_BPS,
-                        initialSwapCooldownDuration: DEFAULT_SWAP_COOLDOWN_DURATION,
-                        initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
+                    params,
+                    IMakinaLiteModule.MakinaLiteModuleServiceParams({
+                        initialProvider: dao, initialSwapFeeRate: DEFAULT_SWAP_FEE_RATE
                     }),
                     salt,
                     referralKey
